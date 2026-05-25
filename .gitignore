@@ -42,3 +42,49 @@ terraform.rc
 # Optional: ignore plan files saved before destroying Terraform configuration
 # Uncomment the line below if you want to ignore planout files.
 # planout
+
+# ---------- platform-lab additions ----------
+
+# Kubeconfigs — never commit, even for local clusters
+kubeconfig
+kubeconfig.*
+*.kubeconfig
+.kube/
+
+# Secrets / credentials
+*.pem
+*.key
+*.crt
+*.p12
+*.pfx
+secrets/
+*.secret
+*.secret.yaml
+*-secret.yaml
+
+# Environment files
+.env
+.env.*
+!.env.example
+
+# Helm
+charts/*.tgz
+.helm/
+
+# Local Kubernetes state
+*.tar
+*.tar.gz
+
+# macOS
+.DS_Store
+
+# Editor / IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Logs / temp
+*.log
+tmp/
+.tmp/
