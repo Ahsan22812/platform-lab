@@ -1,0 +1,108 @@
+# podinfo — small Go HTTP service used as a baseline workload for the lab.
+# Source: https://github.com/stefanprodan/podinfo
+#
+# Three Kubernetes resources, applied as one manifest:
+#   - Namespace `podinfo`
+#   - Deployment with 3 replicas
+#   - ClusterIP Service fronting the pods on port 80
+#
+# Labels follow the standard `app.kubernetes.io/*` conventions:
+#   https://kubernetes.io/docs/concepts/overview/working-with-objects/common-labels/
+
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: podinfo
+  labels:
+    app.kubernetes.io/name: podinfo
+    app.kubernetes.io/part-of: platform-lab
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: podinfo
+  namespace: podinfo
+  labels:
+    app.kubernetes.io/name: podinfo
+    app.kubernetes.io/instance: podinfo
+    app.kubernetes.io/version: "6.7.0"
+    app.kubernetes.io/component: web
+    app.kubernetes.io/part-of: platform-lab
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: podinfo
+      app.kubernetes.io/instance: podinfo
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: podinfo
+        app.kubernetes.io/instance: podinfo
+        app.kubernetes.io/version: "6.7.0"
+        app.kubernetes.io/component: web
+        app.kubernetes.io/part-of: platform-lab
+    spec:
+      automountServiceAccountToken: false
+      securityContext:
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: podinfo
+          image: ghcr.io/stefanprodan/podinfo:6.7.0
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: http
+              containerPort: 9898
+              protocol: TCP
+          readinessProbe:
+            httpGet:
+              path: /readyz
+              port: http
+            initialDelaySeconds: 2
+            periodSeconds: 5
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: http
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          resources:
+            requests:
+              cpu: 50m
+              memory: 64Mi
+            limits:
+              cpu: 200m
+              memory: 128Mi
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            runAsNonRoot: true
+            runAsUser: 1000
+            capabilities:
+              drop:
+                - ALL
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: podinfo
+  namespace: podinfo
+  labels:
+    app.kubernetes.io/name: podinfo
+    app.kubernetes.io/instance: podinfo
+    app.kubernetes.io/component: web
+    app.kubernetes.io/part-of: platform-lab
+spec:
+  type: ClusterIP
+  selector:
+    app.kubernetes.io/name: podinfo
+    app.kubernetes.io/instance: podinfo
+  ports:
+    - name: http
+      port: 80
+      targetPort: http
+      protocol: TCP

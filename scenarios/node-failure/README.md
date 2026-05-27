@@ -1,6 +1,5 @@
 # Scenario: Node failure
 
-Simulate the loss of a worker node and observe how the cluster reschedules
-workloads onto healthy nodes.
+Covered as a short operational runbook rather than a full scenario.
 
-**Status**: not yet documented
+See [`docs/runbooks/node-failure.md`](../../docs/runbooks/node-failure.md).

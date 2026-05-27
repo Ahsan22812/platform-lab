@@ -7,10 +7,12 @@ documented as it lands.
 
 - [x] Repo scaffolded
 - [x] Per-directory git identity configured
-- [ ] First 3 ADRs (Colima, kind, monorepo)
-- [ ] Toolchain installed (Colima, kind, kubectl, helm, k9s)
-- [ ] kind cluster config + scripts + Makefile
-- [ ] Cluster verified (3 nodes Ready, node-failure recovery observed)
+- [x] First 3 ADRs (Colima, kind, monorepo)
+- [x] Toolchain installed (Colima, kind, kubectl, helm, k9s)
+- [x] kind cluster config + scripts + Makefile
+- [x] Cluster verified (3 nodes Ready, node-failure recovery observed)
+- [x] podinfo deployed as baseline workload
+- [x] Node-failure runbook (`docs/runbooks/node-failure.md`)
 
 ## Layer 2: Observability
 
