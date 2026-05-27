@@ -5,16 +5,14 @@
 
 set -euo pipefail
 
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+
+# shellcheck source=lib/common.sh
+source "$SCRIPT_DIR/lib/common.sh"
+
 CLUSTER_NAME="platform-lab"
 
-log()  { printf '\033[1;34m▶\033[0m %s\n' "$*"; }
-ok()   { printf '\033[1;32m✓\033[0m %s\n' "$*"; }
-warn() { printf '\033[1;33m!\033[0m %s\n' "$*"; }
-
-if ! command -v kind >/dev/null 2>&1; then
-  echo "error: kind not found on PATH" >&2
-  exit 1
-fi
+require_cmd kind
 
 if ! kind get clusters 2>/dev/null | grep -qx "$CLUSTER_NAME"; then
   warn "cluster '$CLUSTER_NAME' does not exist — nothing to delete"
