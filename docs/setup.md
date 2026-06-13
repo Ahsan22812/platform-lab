@@ -29,6 +29,24 @@ colima start --cpu 4 --memory 8 --disk 40
 make cluster-up
 ```
 
+## Point your shell at the lab
+
+The lab's credentials live in a **dedicated kubeconfig**
+(`~/.kube/platform-lab.yaml`), not in `~/.kube/config`. In every shell
+where you work on the lab:
+
+```bash
+export KUBECONFIG=~/.kube/platform-lab.yaml
+```
+
+Why: if the default kubeconfig on your machine points at other clusters
+(work, cloud), keeping the lab in its own file makes it impossible to
+run a lab command against them, or vice versa — isolation by file, not
+by discipline. Shells without the export never see the lab at all.
+
+To use a different location, set `PLATFORM_LAB_KUBECONFIG` before
+running the scripts.
+
 ## Tear down
 
 ```bash

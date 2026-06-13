@@ -25,8 +25,10 @@ require_cmd() {
   done
 }
 
-# Ensure the active docker context matches the expected one; switch if not.
-# Dies if the expected context doesn't exist.
+# Ensure the active docker context matches the expected one. Never switches
+# it — guards verify, humans mutate. Two failure modes, two messages:
+# context missing (Colima not set up) vs wrong context active (machine
+# pointed elsewhere, e.g. Docker Desktop).
 #   require_docker_context colima
 require_docker_context() {
   local expected="$1"
@@ -35,8 +37,7 @@ require_docker_context() {
   if [[ "$current" != "$expected" ]]; then
     docker context inspect "$expected" >/dev/null 2>&1 \
       || die "docker context '$expected' not found — is Colima installed and started?"
-    warn "docker context is '$current' — switching to '$expected'"
-    docker context use "$expected" >/dev/null
+    die "docker context is '$current', expected '$expected' — switch with: docker context use $expected"
   fi
 }
 
@@ -44,4 +45,16 @@ require_docker_context() {
 require_docker_daemon() {
   docker info >/dev/null 2>&1 \
     || die "docker daemon not reachable — is colima running? (try: colima start)"
+}
+
+# Ensure kubectl's current context matches the expected one. Bails before any
+# destructive cluster operation if you're accidentally pointed at the wrong
+# cluster (e.g. a work EKS context).
+#   require_kube_context kind-platform-lab
+require_kube_context() {
+  local expected="$1"
+  local current
+  current="$(kubectl config current-context 2>/dev/null || echo none)"
+  [[ "$current" == "$expected" ]] \
+    || die "kubectl context is '$current', expected '$expected' — switch with: kubectl config use-context $expected"
 }
