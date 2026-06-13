@@ -1,11 +1,11 @@
 chart:      grafana
-version:    12.4.4
-appVersion: 13.0.1-security-01 (Grafana)
+version:    12.4.5
+appVersion: 13.0.2 (Grafana)
 repo:       https://grafana-community.github.io/helm-charts
 source:     https://github.com/grafana-community/helm-charts/tree/main/charts/grafana
-pulled:     2026-06-10
-command:    helm pull grafana --repo https://grafana-community.github.io/helm-charts --version 12.4.4
-verify:     shasum -c grafana-12.4.4.tgz.sha256
+pulled:     2026-06-14
+command:    helm pull grafana --repo https://grafana-community.github.io/helm-charts --version 12.4.5
+verify:     shasum -c grafana-12.4.5.tgz.sha256
 
 NOTE: the grafana chart migrated from grafana/helm-charts
 (https://grafana.github.io/helm-charts) to grafana-community/helm-charts
@@ -24,4 +24,4 @@ version — abnormal, investigate before committing). Then regenerate the
 ../install.sh, delete the old tgz + sha256, and update this file. Review
 upstream changelog for breaking changes first.
 
-Provenance: 12.4.4 verified equal to upstream index.yaml digest on 2026-06-14.
+Provenance: 12.4.5 verified equal to upstream index.yaml digest on 2026-06-14.

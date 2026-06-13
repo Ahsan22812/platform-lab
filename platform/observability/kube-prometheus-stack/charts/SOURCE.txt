@@ -1,11 +1,12 @@
 chart:      kube-prometheus-stack
-version:    86.0.0
+version:    86.2.3
 appVersion: v0.91.0 (prometheus-operator)
+deploys:    Prometheus v3.12.0, Alertmanager v0.33.0 (image tags in chart)
 repo:       https://prometheus-community.github.io/helm-charts
 source:     https://github.com/prometheus-community/helm-charts/tree/main/charts/kube-prometheus-stack
-pulled:     2026-06-10
-command:    helm pull kube-prometheus-stack --repo https://prometheus-community.github.io/helm-charts --version 86.0.0
-verify:     shasum -c kube-prometheus-stack-86.0.0.tgz.sha256
+pulled:     2026-06-14
+command:    helm pull kube-prometheus-stack --repo https://prometheus-community.github.io/helm-charts --version 86.2.3
+verify:     shasum -c kube-prometheus-stack-86.2.3.tgz.sha256
 
 To bump: pull the new version with the command above (new --version),
 then VERIFY PROVENANCE before trusting it — confirm the pulled tarball's
@@ -19,4 +20,4 @@ version — abnormal, investigate before committing). Then regenerate the
 ../install.sh, delete the old tgz + sha256, and update this file. Review
 upstream changelog for breaking changes first.
 
-Provenance: 86.0.0 verified equal to upstream index.yaml digest on 2026-06-14.
+Provenance: 86.2.3 verified equal to upstream index.yaml digest on 2026-06-14.
