@@ -13,6 +13,15 @@ in January 2026. All charts in the old repo are marked deprecated; pull
 future versions from the grafana-community repo above.
 
 To bump: pull the new version with the command above (new --version),
-regenerate the .sha256 (shasum -a 256 <tgz> > <tgz>.sha256), update
-CHART_VERSION in ../install.sh, delete the old tgz + sha256, and update
-this file. Review upstream changelog for breaking changes first.
+then VERIFY PROVENANCE before trusting it — confirm the pulled tarball's
+hash matches upstream's published digest for that version:
+  shasum -a 256 <tgz>
+  curl -s https://grafana-community.github.io/helm-charts/index.yaml \
+    | awk '/^[[:space:]]+digest:/{d=$2} /^[[:space:]]+version: <NEWVER>$/{print d; exit}'
+The two must be identical (a mismatch means upstream repackaged the same
+version — abnormal, investigate before committing). Then regenerate the
+.sha256 (shasum -a 256 <tgz> > <tgz>.sha256), update CHART_VERSION in
+../install.sh, delete the old tgz + sha256, and update this file. Review
+upstream changelog for breaking changes first.
+
+Provenance: 12.4.4 verified equal to upstream index.yaml digest on 2026-06-14.
