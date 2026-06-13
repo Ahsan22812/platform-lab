@@ -68,7 +68,9 @@ secrets/
 !.env.example
 
 # Helm
-charts/*.tgz
+# No charts/*.tgz ignore on purpose: vendored charts under
+# platform/**/charts/ ARE committed (see ADR 0004). Only the local
+# Helm home/cache is ignored.
 .helm/
 
 # Local Kubernetes state
@@ -88,3 +90,8 @@ charts/*.tgz
 *.log
 tmp/
 .tmp/
+
+# Local-only script hooks (env-specific, never committed)
+*.local.sh
+*.local.yaml
+*.local

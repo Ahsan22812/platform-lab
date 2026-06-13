@@ -16,17 +16,20 @@ and security on Kubernetes.
 
 ## Current state
 
-- [x] Repo scaffolded
-- [ ] Local kind cluster
-- [ ] Observability (Prometheus + Grafana)
-- [ ] GitOps (ArgoCD)
-- [ ] Backup & DR (Velero)
-- [ ] Security (Falco, Kyverno, Trivy)
-- [ ] Secrets (Vault, External Secrets Operator)
-- [ ] Networking (Cilium)
-- [ ] Stateful workloads (Postgres HA, Kafka)
+| Layer | Focus | Status |
+|---|---|---|
+| 1 | Foundation (kind cluster, podinfo, node-failure runbook) | ✅ done |
+| 2 | Observability (Prometheus, Grafana, Loki) | 🔨 in progress |
+| 2.5 | Ingress & TLS (ingress-nginx, cert-manager) | planned |
+| 3 | Backup, DR & storage (Velero, MinIO, Thanos) | planned |
+| 3.5 | GitOps & registry (ArgoCD) | planned |
+| 4 | Security (Falco, Kyverno, Trivy) | planned |
+| 5 | Secrets & networking (Vault, ESO, Cilium) | planned |
+| 6 | Stateful HA (Patroni, Kafka, Redis, Chaos Mesh) | planned |
 
-See [`docs/roadmap.md`](docs/roadmap.md) for the full plan.
+Status here is per-layer only; the item-level checklists live in
+[`docs/roadmap.md`](docs/roadmap.md) — the single source of truth for
+the plan.
 
 ## Getting started
 
