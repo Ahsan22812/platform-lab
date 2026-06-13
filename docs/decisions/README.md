@@ -28,3 +28,4 @@ What did we decide to do?
 - [0001: Use Colima over OrbStack](0001-colima-over-orbstack.md)
 - [0002: Use kind over k3d](0002-kind-over-k3d.md)
 - [0003: Single monorepo over polyrepo](0003-monorepo.md)
+- [0004: Vendor third-party Helm charts into the repo](0004-vendor-helm-charts.md)

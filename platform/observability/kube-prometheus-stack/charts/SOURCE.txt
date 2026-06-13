@@ -1,0 +1,13 @@
+chart:      kube-prometheus-stack
+version:    86.0.0
+appVersion: v0.91.0 (prometheus-operator)
+repo:       https://prometheus-community.github.io/helm-charts
+source:     https://github.com/prometheus-community/helm-charts/tree/main/charts/kube-prometheus-stack
+pulled:     2026-06-10
+command:    helm pull kube-prometheus-stack --repo https://prometheus-community.github.io/helm-charts --version 86.0.0
+verify:     shasum -c kube-prometheus-stack-86.0.0.tgz.sha256
+
+To bump: pull the new version with the command above (new --version),
+regenerate the .sha256 (shasum -a 256 <tgz> > <tgz>.sha256), update
+CHART_VERSION in ../install.sh, delete the old tgz + sha256, and update
+this file. Review upstream changelog for breaking changes first.
