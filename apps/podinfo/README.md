@@ -16,6 +16,10 @@ on port 9898 — used once Prometheus is installed in the next layer.
 
 ```bash
 kubectl apply -f apps/podinfo/podinfo.yaml
+
+# Apply the ServiceMonitor *after* kube-prometheus-stack is installed
+# (it provides the ServiceMonitor CRD).
+kubectl apply -f apps/podinfo/servicemonitor.yaml
 ```
 
 ## Verify
@@ -23,11 +27,16 @@ kubectl apply -f apps/podinfo/podinfo.yaml
 ```bash
 kubectl get all -n podinfo
 kubectl rollout status deployment/podinfo -n podinfo
+kubectl get servicemonitor -n podinfo
 ```
+
+In Prometheus (port-forward and visit /targets), a new target
+`serviceMonitor/podinfo/podinfo/0` should appear with state UP.
 
 ## Remove
 
 ```bash
+kubectl delete -f apps/podinfo/servicemonitor.yaml
 kubectl delete -f apps/podinfo/podinfo.yaml
 ```
 

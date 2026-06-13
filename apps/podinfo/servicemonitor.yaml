@@ -1,0 +1,33 @@
+# ServiceMonitor — tells Prometheus to scrape podinfo's /metrics endpoint.
+#
+# Requires the Prometheus Operator CRDs (installed by kube-prometheus-stack
+# in `platform/observability/kube-prometheus-stack/`). Apply this *after*
+# the observability layer is up.
+#
+# Reference: https://prometheus-operator.dev/docs/api-reference/api/#monitoring.coreos.com/v1.ServiceMonitor
+
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: podinfo
+  namespace: podinfo
+  labels:
+    app.kubernetes.io/name: podinfo
+    app.kubernetes.io/instance: podinfo
+    app.kubernetes.io/component: web
+    app.kubernetes.io/part-of: platform-lab
+spec:
+  # Find the Service to scrape from. Matches the labels on the podinfo
+  # Service defined in podinfo.yaml.
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: podinfo
+      app.kubernetes.io/instance: podinfo
+  # Scrape the named port `http` on every endpoint of the selected
+  # Service (one per pod). podinfo exposes /metrics on the same port
+  # as its HTTP API.
+  endpoints:
+    - port: http
+      path: /metrics
+      interval: 30s
+      scrapeTimeout: 10s

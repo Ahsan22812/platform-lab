@@ -1,10 +1,11 @@
 # podinfo — small Go HTTP service used as a baseline workload for the lab.
 # Source: https://github.com/stefanprodan/podinfo
 #
-# Three Kubernetes resources, applied as one manifest:
+# Four Kubernetes resources, applied as one manifest:
 #   - Namespace `podinfo`
 #   - Deployment with 3 replicas
 #   - ClusterIP Service fronting the pods on port 80
+#   - PodDisruptionBudget (max 1 pod down during voluntary disruptions)
 #
 # Labels follow the standard `app.kubernetes.io/*` conventions:
 #   https://kubernetes.io/docs/concepts/overview/working-with-objects/common-labels/
@@ -51,7 +52,12 @@ spec:
           type: RuntimeDefault
       containers:
         - name: podinfo
-          image: ghcr.io/stefanprodan/podinfo:6.7.0
+          # Tag for humans, digest for the runtime — tags are mutable, digests
+          # aren't (same reasoning as the digest-pinned node image in
+          # clusters/kind/kind-config.yaml). Multi-arch index digest, covers
+          # amd64 + arm64. Bump = new tag AND its new digest:
+          #   docker buildx imagetools inspect ghcr.io/stefanprodan/podinfo:<tag>
+          image: ghcr.io/stefanprodan/podinfo:6.7.0@sha256:d2b3cd93a48acdc91327533ce28fcb3169b2d9feaf73817dc2eb68858df64edb
           imagePullPolicy: IfNotPresent
           ports:
             - name: http
@@ -106,3 +112,30 @@ spec:
       port: 80
       targetPort: http
       protocol: TCP
+
+---
+# Limits how fast VOLUNTARY disruptions (kubectl drain, autoscaler
+# scale-down, node upgrades) may remove pods: at most 1 of the 3
+# replicas down at a time, so a drain evicts one pod, waits for its
+# replacement to be Ready, then proceeds. Involuntary failures (node
+# crash) don't ask the eviction API — see docs/runbooks/node-failure.md.
+#
+# maxUnavailable (not minAvailable): stays correct at any replica
+# count. An absolute minAvailable rots when replicas change — and at
+# minAvailable == replicas it blocks drains forever.
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: podinfo
+  namespace: podinfo
+  labels:
+    app.kubernetes.io/name: podinfo
+    app.kubernetes.io/instance: podinfo
+    app.kubernetes.io/component: web
+    app.kubernetes.io/part-of: platform-lab
+spec:
+  maxUnavailable: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: podinfo
+      app.kubernetes.io/instance: podinfo
