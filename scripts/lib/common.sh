@@ -7,6 +7,9 @@
 # This file is sourced, not executed. Do not add a shebang. Do not call
 # `set -euo pipefail` here — the calling script owns its own shell options.
 
+# shellcheck shell=bash
+# (no shebang to infer dialect from; this lib is sourced into bash scripts)
+
 # ---------- Pretty output ----------
 log()  { printf '\033[1;34m▶\033[0m %s\n' "$*"; }
 ok()   { printf '\033[1;32m✓\033[0m %s\n' "$*"; }

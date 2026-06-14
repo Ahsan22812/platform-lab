@@ -72,6 +72,11 @@ for exactly this.
 - [ ] (pairs with Layer 4) cosign-sign mirrored images + Kyverno
       verify-signature admission — completes require-digest into
       require-signed-by-our-pipeline
+- [ ] Jenkins as a deploy-and-operate lab component (Helm chart,
+      persistence, agents, Jenkinsfile, in-cluster builds e.g. kaniko) —
+      learn to OPERATE CI/CD, not as the repo's gate (that's Actions).
+      Mirrors the work environment; optionally run a pipeline parallel
+      to the Actions gate to compare.
 
 ## Layer 4: Security
 
@@ -137,10 +142,17 @@ can sidestep).
 
 ## Repo tooling (layer-independent)
 
-- [ ] CI for lint + validate (shellcheck, yamllint/kubeconform,
-      helm template smoke test, chart checksum verify) — engine TBD:
-      GitHub Actions vs Jenkins vs both
-- [ ] Secret scanning (gitleaks/trufflehog) in the pipeline + GitHub
-      push protection — the real backstop for a public repo, since
-      .gitignore is only a soft guard (git add -f bypasses it, and it
-      does nothing for already-committed files)
+- [x] Tier-1 CI gate on **GitHub Actions** (`.github/workflows/ci.yml`):
+      shellcheck, yamllint, kubeconform, helm-template smoke, chart
+      checksum verify, gitleaks secret scan. Static only — no cluster.
+- [ ] GitHub push protection (repo setting) — pairs with the gitleaks
+      job; .gitignore is only a soft guard (git add -f bypasses it, and
+      it does nothing for already-committed files)
+- [ ] Tier-2 integration CI (spin up kind, install charts, assert
+      healthy) — deferred until the install flow is proven manually
+- [ ] Pin Actions to commit SHAs (supply-chain hardening, Layer-4 ethos)
+
+CI engine = GitHub Actions (native to a public GitHub repo, zero infra).
+CD = Argo CD (Layer 3.5). Jenkins is NOT the repo's gate — it's planned
+as a deploy-and-operate lab component (below) to learn CI/CD ops, since
+it mirrors the work environment.

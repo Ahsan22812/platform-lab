@@ -1,0 +1,21 @@
+# yamllint config for platform-lab.
+# Pragmatic, not pedantic: catch real mistakes (syntax, duplicate keys,
+# trailing whitespace), don't nag about cosmetics.
+
+extends: default
+
+ignore: |
+  platform/observability/**/charts/
+
+rules:
+  # Long lines happen in manifests and comments — warn, don't fail.
+  line-length:
+    max: 120
+    level: warning
+  # Leading `---` is optional in this repo.
+  document-start: disable
+  # `on:` in GitHub workflows is a key, not a boolean — don't flag it.
+  truthy:
+    check-keys: false
+  comments:
+    min-spaces-from-content: 1

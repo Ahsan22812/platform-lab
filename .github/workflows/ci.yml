@@ -1,0 +1,98 @@
+# Tier-1 CI: static checks only — lint and validate, no cluster.
+#
+# Guards everything in the repo on every push/PR: shell scripts, YAML,
+# Kubernetes manifests, vendored chart integrity + renderability, and
+# secrets. Integration testing (spin up kind, install charts) is Tier-2
+# and deliberately deferred — see docs/roadmap.md.
+#
+# Engine: GitHub Actions is this repo's CI gate. Jenkins is planned as a
+# deploy-and-operate lab component, not the repo's gate. CD is Argo CD.
+
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+# Least privilege — these jobs only read the repo.
+permissions:
+  contents: read
+
+# Supersede in-flight runs on the same ref.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  shellcheck:
+    runs-on: ubuntu-latest
+    steps:
+      # TODO(layer-4 hardening): pin actions to a commit SHA, not a tag.
+      - uses: actions/checkout@v4
+      # shellcheck is preinstalled on the ubuntu runner. -x follows sources.
+      - run: shellcheck -x scripts/*.sh scripts/lib/*.sh
+
+  yaml:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: pip install yamllint
+      - run: yamllint .
+
+  manifests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: install kubeconform
+        run: |
+          curl -sSL https://github.com/yannh/kubeconform/releases/latest/download/kubeconform-linux-amd64.tar.gz | tar xz
+          sudo mv kubeconform /usr/local/bin/
+      # Validate our authored manifests against the Kubernetes schema.
+      # ServiceMonitor is a CRD — resolve it from the CRDs catalog, and
+      # ignore any other unknown CRD schemas rather than failing.
+      - name: validate
+        run: |
+          kubeconform -strict -summary \
+            -schema-location default \
+            -schema-location 'https://raw.githubusercontent.com/datreeio/CRDs-catalog/main/{{.Group}}/{{.ResourceKind}}_{{.ResourceAPIVersion}}.json' \
+            -ignore-missing-schemas \
+            apps/podinfo/podinfo.yaml apps/podinfo/servicemonitor.yaml
+
+  charts:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: azure/setup-helm@v4
+      # Integrity: each vendored chart must match its recorded checksum.
+      - name: verify chart checksums
+        run: |
+          for sha in platform/observability/*/charts/*.sha256; do
+            ( cd "$(dirname "$sha")" && shasum -c "$(basename "$sha")" )
+          done
+      # Renderability: every vendored chart must template cleanly. Uses
+      # the component's values.yaml once it exists, default values until then.
+      - name: helm template smoke test
+        run: |
+          for chart in platform/observability/*/charts/*.tgz; do
+            comp="$(dirname "$(dirname "$chart")")"
+            if [ -f "$comp/values.yaml" ]; then
+              helm template smoke "$chart" --values "$comp/values.yaml" >/dev/null
+            else
+              helm template smoke "$chart" >/dev/null
+            fi
+            echo "rendered OK: $chart"
+          done
+
+  secrets:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0   # full history so the scan covers all commits
+      - name: install gitleaks
+        run: |
+          ver=$(curl -s https://api.github.com/repos/gitleaks/gitleaks/releases/latest | grep -oP '"tag_name": *"v\K[^"]+')
+          curl -sSL "https://github.com/gitleaks/gitleaks/releases/download/v${ver}/gitleaks_${ver}_linux_x64.tar.gz" | tar xz
+          sudo mv gitleaks /usr/local/bin/
+      - run: gitleaks detect --no-banner --redact --source .
