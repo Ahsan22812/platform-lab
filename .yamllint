@@ -8,10 +8,11 @@ ignore: |
   platform/observability/**/charts/
 
 rules:
-  # Long lines happen in manifests and comments — warn, don't fail.
-  line-length:
-    max: 120
-    level: warning
+  # Disabled: image digests (e.g. podinfo's pinned sha256) and command
+  # URLs are single tokens that exceed any sane width and can't be
+  # wrapped — enforcing a limit would conflict with digest pinning.
+  # The valuable structural rules below stay on.
+  line-length: disable
   # Leading `---` is optional in this repo.
   document-start: disable
   # `on:` in GitHub workflows is a key, not a boolean — don't flag it.

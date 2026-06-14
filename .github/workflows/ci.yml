@@ -29,7 +29,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       # TODO(layer-4 hardening): pin actions to a commit SHA, not a tag.
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       # shellcheck is preinstalled on the ubuntu runner. -x follows
       # sourced files; --source-path=SCRIPTDIR resolves the `source=`
       # directives relative to each script's own dir (scripts/lib/...).
@@ -38,14 +38,14 @@ jobs:
   yaml:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - run: pip install yamllint
       - run: yamllint .
 
   manifests:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - name: install kubeconform
         run: |
           curl -sSL https://github.com/yannh/kubeconform/releases/latest/download/kubeconform-linux-amd64.tar.gz | tar xz
@@ -64,8 +64,11 @@ jobs:
   charts:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: azure/setup-helm@v4
+      - uses: actions/checkout@v5
+      # Direct install (no Node-based action) — keeps the third-party
+      # action surface small and avoids the Node-runtime deprecation.
+      - name: install helm
+        run: curl -fsSL https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash
       # Integrity: each vendored chart must match its recorded checksum.
       - name: verify chart checksums
         run: |
@@ -89,7 +92,7 @@ jobs:
   secrets:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           fetch-depth: 0   # full history so the scan covers all commits
       # Pinned version, direct download — no GitHub API call (the
