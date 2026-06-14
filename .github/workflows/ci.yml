@@ -30,10 +30,11 @@ jobs:
     steps:
       # TODO(layer-4 hardening): pin actions to a commit SHA, not a tag.
       - uses: actions/checkout@v5
-      # shellcheck is preinstalled on the ubuntu runner. -x follows
-      # sourced files; --source-path=SCRIPTDIR resolves the `source=`
-      # directives relative to each script's own dir (scripts/lib/...).
-      - run: shellcheck -x --source-path=SCRIPTDIR scripts/*.sh scripts/lib/*.sh
+      # Lint every tracked shell script (not just scripts/) — picks up
+      # component install.sh and dashboards/fetch.sh too; git ls-files
+      # excludes the gitignored local hook. -x follows sourced files;
+      # --source-path=SCRIPTDIR resolves `source=` dirs per script.
+      - run: shellcheck -x --source-path=SCRIPTDIR $(git ls-files '*.sh')
 
   yaml:
     runs-on: ubuntu-latest
