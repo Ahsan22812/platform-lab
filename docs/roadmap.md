@@ -160,6 +160,16 @@ can sidestep).
 - [ ] Optional: Tailscale mesh as a lower-risk admin path for own
       devices (nothing public on that path at all)
 
+## Own application services (end-of-build)
+
+Deferred to the end, **after the infra layers are done** — build the
+platform first, then put real apps on it. Our own coded services land
+in `apps/<name>/` (source + Dockerfile) with a deployment chart in
+`charts/<name>/` consuming `common` — exercising the apps/charts split
+end-to-end (code → image → chart → deploy). A first such service also
+becomes the "real traced application" Tempo needs (Layer 6) and gives
+the ops drills below something genuine to investigate.
+
 ## Operations runbooks & drills (after most infra is in place)
 
 Best done near the END of the build — once the full stack exists,
