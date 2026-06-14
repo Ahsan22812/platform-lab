@@ -1,0 +1,103 @@
+# Helm values for standalone Grafana on the platform-lab kind cluster.
+#
+# Reference: https://github.com/grafana-community/helm-charts/tree/main/charts/grafana
+#
+# Only overrides are listed — everything else uses chart defaults.
+# adminUser/adminPassword are NOT set here; they're passed at install
+# time via --set-string (see install.sh). The production pattern is an
+# existing Secret sourced from Vault via ESO — refactor at Layer 5, see
+# TODO.md.
+
+# --- Service & networking ---
+service:
+  type: ClusterIP
+  port: 80
+
+# --- Persistence ---
+# Disabled: Grafana's SQLite DB lives in emptyDir and is lost on pod
+# restart. Dashboards + datasources are re-provisioned from this file on
+# every start, so the loss is cosmetic (logins, stars). Temporary —
+# flip to a PVC at Layer 3+ when persistent storage lands.
+persistence:
+  enabled: false
+
+# --- Replicas / resources ---
+# replicas: 1 is a real constraint, not a shortcut — Grafana HA needs an
+# external shared database (Postgres/MySQL), out of scope for this lab.
+replicas: 1
+resources:
+  # Policy: always set requests (cpu+memory) and a memory limit;
+  # deliberately NO cpu limit (CFS throttling hurts a UI workload).
+  requests:
+    cpu: 100m
+    memory: 128Mi
+  limits:
+    memory: 512Mi
+
+# --- Pod security ---
+securityContext:
+  runAsNonRoot: true
+  runAsUser: 472          # grafana's uid
+  runAsGroup: 472
+  fsGroup: 472
+  seccompProfile:
+    type: RuntimeDefault
+containerSecurityContext:
+  allowPrivilegeEscalation: false
+  readOnlyRootFilesystem: false   # Grafana writes to /var/lib/grafana
+  capabilities:
+    drop:
+      - ALL
+
+# --- Grafana settings ---
+# server.root_url is intentionally unset — the built-in default works for
+# port-forward (localhost:3000). Set it to the public URL when ingress
+# lands, so generated links (alerts, share) are correct.
+grafana.ini:
+  users:
+    allow_sign_up: false        # admin creates all users
+  analytics:
+    reporting_enabled: false
+    check_for_updates: false
+
+defaultDashboardsTimezone: browser
+
+# --- Datasources (provisioned on every pod start) ---
+datasources:
+  datasources.yaml:
+    apiVersion: 1
+    datasources:
+      - name: Prometheus
+        type: prometheus
+        # Stable uid — vendored dashboards (dashboards/) bind to this.
+        uid: prometheus
+        access: proxy
+        # Must match the kube-prometheus-stack Prometheus Service.
+        url: http://kube-prometheus-stack-prometheus.monitoring.svc.cluster.local:9090
+        isDefault: true
+        editable: false
+        # Future: Loki, Tempo, Thanos added here as new entries.
+
+# --- Dashboards ---
+# Vendored as JSON in dashboards/ and loaded via ConfigMaps (created by
+# install.sh, labelled grafana_dashboard=1) that the sidecar below
+# auto-imports. No grafana.com fetch at pod start — closes ADR 0004's
+# third external dependency. See dashboards/SOURCE.txt.
+# No `dashboards:` / `dashboardProviders:` blocks here on purpose — the
+# sidecar manages its own provider; those blocks are only for the
+# chart's gnetId-download path, which we no longer use.
+
+# --- Sidecars — auto-import dashboards/datasources from ConfigMaps ---
+# Other components (Loki, app charts) can ship a ConfigMap labelled
+# grafana_dashboard: "1" and it's picked up automatically.
+sidecar:
+  dashboards:
+    enabled: true
+    label: grafana_dashboard
+    labelValue: "1"
+    searchNamespace: ALL
+  datasources:
+    enabled: true
+    label: grafana_datasource
+    labelValue: "1"
+    searchNamespace: ALL

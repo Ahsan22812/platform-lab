@@ -1,0 +1,20 @@
+Vendored Grafana dashboards — JSON committed in this directory, loaded
+into Grafana as ConfigMaps (labelled grafana_dashboard=1, created by
+../install.sh) that the dashboard sidecar auto-imports. No grafana.com
+fetch at pod start — this closes the third external dependency named in
+ADR 0004 (vendored charts + mirrored images being the other two).
+
+dashboard             gnetId  revision  source
+node-exporter-full    1860    41        https://grafana.com/grafana/dashboards/1860
+k8s-cluster-overview  7249    1         https://grafana.com/grafana/dashboards/7249
+k8s-namespace-pods    15758   36        https://grafana.com/grafana/dashboards/15758
+k8s-views-global      15757   43        https://grafana.com/grafana/dashboards/15757
+
+fetched:    2026-06-14
+datasource: every ${DS_PROMETHEUS} and ${datasource} placeholder was
+            substituted to uid "prometheus" (the Prometheus datasource
+            in ../values.yaml) by fetch.sh, so panels bind without the
+            interactive import step provisioned dashboards never get.
+
+To bump a revision: edit the list in fetch.sh, run ./fetch.sh, review
+`git diff`, and commit the regenerated JSON.

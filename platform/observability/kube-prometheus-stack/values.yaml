@@ -1,0 +1,84 @@
+# Helm values for kube-prometheus-stack on the platform-lab kind cluster.
+#
+# Reference: https://github.com/prometheus-community/helm-charts/tree/main/charts/kube-prometheus-stack
+#
+# Only overrides are listed here — everything else uses chart defaults.
+# Grafana is intentionally NOT installed by this chart; it lives in its
+# own chart at ../grafana/. See docs/decisions/ and ../README.md.
+
+# --- Grafana: off ---
+# Run Grafana from its own chart (independent upgrades, multi-datasource,
+# SSO). This chart only provides the metrics half.
+grafana:
+  enabled: false
+
+# --- Scrape jobs that don't work on kind ---
+# kube-controller-manager, kube-scheduler, etcd and kube-proxy bind their
+# metrics to 127.0.0.1 *inside* each node container, so a Prometheus pod
+# on another node gets "connection refused". Disabling them removes the
+# permanently-red targets and the default alert rules that reference them.
+#
+# OBSERVE-THEN-FIX (first run only): to see the failure yourself, comment
+# this block out for the first install, open Prometheus > Status > Targets,
+# watch these jobs sit red with "connection refused", then restore the
+# block, re-run install.sh, and capture what you saw in
+# docs/troubleshooting.md. The committed values keep them disabled.
+kubeControllerManager:
+  enabled: false
+kubeScheduler:
+  enabled: false
+kubeEtcd:
+  enabled: false
+kubeProxy:
+  enabled: false
+
+# --- Prometheus ---
+prometheus:
+  prometheusSpec:
+    retention: 7d
+
+    # No persistence yet — data lives in emptyDir and is lost on pod
+    # restart. Temporary: real PVCs land at Layer 3+ when MinIO/Thanos
+    # arrive (tracked in docs/roadmap.md). Retention only matters once
+    # storage is persistent.
+    storageSpec: {}
+
+    # Discover ServiceMonitor / PodMonitor / Probe / PrometheusRule
+    # objects regardless of their labels. Default (true) makes Prometheus
+    # only pick up resources labelled with this chart's release — which
+    # would silently ignore podinfo's ServiceMonitor.
+    serviceMonitorSelectorNilUsesHelmValues: false
+    podMonitorSelectorNilUsesHelmValues: false
+    probeSelectorNilUsesHelmValues: false
+    ruleSelectorNilUsesHelmValues: false
+
+    # ...and discover them in ANY namespace, not just `monitoring`.
+    # podinfo's ServiceMonitor lives in the `podinfo` namespace.
+    serviceMonitorNamespaceSelector: {}
+    podMonitorNamespaceSelector: {}
+    probeNamespaceSelector: {}
+    ruleNamespaceSelector: {}
+
+    # Resource requests/limits. Policy (docs/decisions context): always
+    # set requests (cpu+memory) and a memory limit; deliberately NO cpu
+    # limit (CFS throttling hurts more than it helps for a bursty
+    # scraper). Starting estimates — right-size from observed usage after
+    # a day of runtime (Layer 2 roadmap item).
+    resources:
+      requests:
+        cpu: 100m
+        memory: 512Mi
+      limits:
+        memory: 1Gi
+
+# --- Alertmanager ---
+# Installed for completeness; no alert routes wired yet.
+alertmanager:
+  alertmanagerSpec:
+    storage: {}   # emptyDir, same temporary state as Prometheus above
+    resources:
+      requests:
+        cpu: 10m
+        memory: 64Mi
+      limits:
+        memory: 128Mi

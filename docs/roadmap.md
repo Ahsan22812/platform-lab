@@ -20,13 +20,26 @@ stable because other docs reference them.
 
 ## Layer 2: Observability
 
-- [ ] kube-prometheus-stack (Prometheus, Alertmanager; Grafana split out)
-- [ ] Standalone Grafana (own chart, own upgrade cadence)
+- [ ] metrics-server — the `metrics.k8s.io` API (real-time CPU/mem;
+      powers `kubectl top`, HPA, and the VPA recommender). Distinct from
+      Prometheus, which is historical time-series. On kind needs
+      `--kubelet-insecure-tls` (kind's kubelet serving cert isn't signed
+      by the cluster CA). Apache-2.0; vendor via the Path C pattern.
+- [x] kube-prometheus-stack (Prometheus, Alertmanager; Grafana split out)
+- [x] Standalone Grafana (own chart, own upgrade cadence; vendored dashboards)
 - [ ] Loki (logs)
 - [ ] First runbook: "investigating high CPU"
-- [ ] Right-size resource requests from observed usage (manual loop
-      first — compare requests vs actual in Prometheus after a day of
-      runtime; later consider VPA in recommendation mode + Goldilocks)
+- [ ] Right-size resource requests from observed usage. Manual loop
+      first (compare requests vs actual in Prometheus after a day of
+      runtime — teaches the mechanics). Then the standard production
+      tooling: **VPA in recommendation mode** (`updateMode: "Off"` —
+      computes recommended requests from real usage, never touches
+      pods) + **Goldilocks** dashboard (current vs recommended).
+      Caveats: never pair VPA `Auto` with HPA on the same resource;
+      `Auto` evicts pods to apply — recommendation-mode + apply-by-hand
+      is the conservative default; needs metrics-server (above) or a
+      Prometheus history provider. VPA + Goldilocks both Apache-2.0/free,
+      confirmed for inclusion.
 
 Tempo (traces) deferred to Layer 6 — tracing needs a real traced
 application, which arrives with the stateful workloads.
