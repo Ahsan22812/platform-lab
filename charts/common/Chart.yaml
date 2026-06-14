@@ -1,0 +1,9 @@
+apiVersion: v2
+name: common
+description: >-
+  Shared Helm library chart for platform-lab. Exports named templates
+  (labels/selectors + PodDisruptionBudget, topologySpreadConstraints,
+  ServiceMonitor) so workload charts get consistent, DRY defaults.
+  Renders nothing on its own — type: library.
+type: library
+version: 0.1.0

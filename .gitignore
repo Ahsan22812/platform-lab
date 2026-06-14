@@ -72,6 +72,12 @@ secrets/
 # platform/**/charts/ ARE committed (see ADR 0004). Only the local
 # Helm home/cache is ignored.
 .helm/
+# Built dependency artifacts of the local 'common' library chart —
+# regenerated from charts/common/ by `helm dependency update` (install.sh
+# + CI), so not committed. Scoped to apps/ to leave the vendored
+# observability charts under platform/**/charts/ tracked.
+apps/podinfo/charts/
+apps/podinfo/Chart.lock
 
 # Local Kubernetes state
 *.tar

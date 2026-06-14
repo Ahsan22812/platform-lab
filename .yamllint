@@ -6,6 +6,12 @@ extends: default
 
 ignore: |
   platform/observability/**/charts/
+  apps/podinfo/charts/
+  # Helm chart template dirs hold Go-templated files ({{ ... }}) that
+  # aren't valid YAML — they're validated by rendering (helm template |
+  # kubeconform in CI), not yamllint. values.yaml / Chart.yaml live
+  # outside templates/ and stay linted.
+  '**/templates/'
 
 rules:
   # Disabled: image digests (e.g. podinfo's pinned sha256) and command

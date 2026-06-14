@@ -1,0 +1,68 @@
+# Values for the podinfo chart.
+
+replicaCount: 3
+
+image:
+  repository: ghcr.io/stefanprodan/podinfo
+  tag: "6.7.0"
+  # Digest pinned (tag is mutable, digest isn't) — multi-arch index
+  # digest, covers amd64 + arm64. Bump both together; see Chart.yaml.
+  digest: "sha256:d2b3cd93a48acdc91327533ce28fcb3169b2d9feaf73817dc2eb68858df64edb"
+  pullPolicy: IfNotPresent
+
+# Port podinfo's HTTP server (and /metrics) listens on.
+containerPort: 9898
+
+service:
+  type: ClusterIP
+  port: 80
+
+# Resources. Policy: always set requests (cpu+memory) + a memory limit.
+# podinfo deliberately KEEPS a cpu limit (200m) — predictability for a
+# demo app. (grafana/prometheus omit theirs because cpu limits can
+# throttle latency-sensitive workloads; cpu limit is a per-workload call.)
+resources:
+  requests:
+    cpu: 50m
+    memory: 64Mi
+  limits:
+    cpu: 200m
+    memory: 128Mi
+
+# Pod-level security context.
+podSecurityContext:
+  seccompProfile:
+    type: RuntimeDefault
+
+# Container-level security context. podinfo runs read-only-root fine.
+containerSecurityContext:
+  allowPrivilegeEscalation: false
+  readOnlyRootFilesystem: true
+  runAsNonRoot: true
+  runAsUser: 1000
+  capabilities:
+    drop:
+      - ALL
+
+# --- Values consumed by the shared `common` library templates ---
+
+# common.pdb — limit voluntary disruptions (drains) to 1 pod at a time.
+podDisruptionBudget:
+  maxUnavailable: 1
+
+# common.topologySpreadConstraints — spread replicas across nodes.
+# ScheduleAnyway (soft) so it never leaves pods Pending; quorum systems
+# would use DoNotSchedule. With 3 replicas / 3 nodes this puts one pod
+# per node.
+topologySpread:
+  maxSkew: 1
+  topologyKey: kubernetes.io/hostname
+  whenUnsatisfiable: ScheduleAnyway
+
+# common.servicemonitor — scrape /metrics. Only rendered once the
+# Prometheus Operator CRD exists (so podinfo installs before kps too).
+serviceMonitor:
+  port: http
+  path: /metrics
+  interval: 30s
+  scrapeTimeout: 10s

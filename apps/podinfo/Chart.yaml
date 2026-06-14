@@ -1,0 +1,21 @@
+apiVersion: v2
+name: podinfo
+description: >-
+  Baseline demo workload for the platform-lab — a thin, hand-authored
+  Helm chart wrapping stefanprodan/podinfo. Exists to practice chart
+  authoring (templates, _helpers.tpl, values) on a real workload.
+type: application
+
+# Chart version — bump on chart changes (independent of the app).
+version: 0.1.0
+# The podinfo application version this chart deploys.
+appVersion: "6.7.0"
+
+# Shared library chart (local, in-repo). Provides common.pdb,
+# common.topologySpreadConstraints, common.servicemonitor, and the
+# label/selector helpers. install.sh runs `helm dependency update`
+# to vendor it into charts/ (gitignored — rebuilt from source).
+dependencies:
+  - name: common
+    version: "0.1.0"
+    repository: "file://../../charts/common"

@@ -47,20 +47,24 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
-      - name: install kubeconform
+      - name: install helm + kubeconform
         run: |
+          curl -fsSL https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash
           curl -sSL https://github.com/yannh/kubeconform/releases/latest/download/kubeconform-linux-amd64.tar.gz | tar xz
           sudo mv kubeconform /usr/local/bin/
-      # Validate our authored manifests against the Kubernetes schema.
-      # ServiceMonitor is a CRD — resolve it from the CRDs catalog, and
-      # ignore any other unknown CRD schemas rather than failing.
-      - name: validate
+      # Render the podinfo chart, then validate the output against the
+      # Kubernetes schema. helm dependency build vendors the shared
+      # 'common' library first. --api-versions forces the ServiceMonitor
+      # to render (no live cluster in CI); the CRDs catalog supplies its
+      # schema, and -ignore-missing-schemas tolerates other CRDs.
+      - name: render + validate
         run: |
-          kubeconform -strict -summary \
-            -schema-location default \
-            -schema-location 'https://raw.githubusercontent.com/datreeio/CRDs-catalog/main/{{.Group}}/{{.ResourceKind}}_{{.ResourceAPIVersion}}.json' \
-            -ignore-missing-schemas \
-            apps/podinfo/podinfo.yaml apps/podinfo/servicemonitor.yaml
+          helm dependency update apps/podinfo
+          helm template podinfo apps/podinfo --api-versions monitoring.coreos.com/v1 \
+            | kubeconform -strict -summary \
+                -schema-location default \
+                -schema-location 'https://raw.githubusercontent.com/datreeio/CRDs-catalog/main/{{.Group}}/{{.ResourceKind}}_{{.ResourceAPIVersion}}.json' \
+                -ignore-missing-schemas
 
   charts:
     runs-on: ubuntu-latest

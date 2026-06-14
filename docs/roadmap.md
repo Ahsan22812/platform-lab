@@ -120,6 +120,14 @@ for exactly this.
 - [ ] Redis Sentinel
 - [ ] topologySpreadConstraints + quorum-style PDBs (minAvailable) for
       the stateful sets above (tracked deferral from Layer 1)
+- [ ] Have the stateful charts consume the shared **`charts/common`**
+      library (built with podinfo): `common.pdb` (use quorum-style
+      `minAvailable` for these) + `common.topologySpreadConstraints`
+      with `whenUnsatisfiable: DoNotSchedule` (hard spread — quorum
+      systems must not co-locate). Selector comes from the shared
+      `selectorLabels` helper, so it can't drift. Kyverno (Layer 4)
+      enforces *presence* on multi-replica workloads; the library makes
+      compliance the path of least resistance.
 - [ ] Chaos Mesh
 - [ ] Tempo (traces) + a real traced application (moved from Layer 2)
 - [ ] Postgres failover scenario documented
