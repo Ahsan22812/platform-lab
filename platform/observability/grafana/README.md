@@ -71,6 +71,6 @@ kubectl delete configmap -n monitoring -l grafana_dashboard=1
 | Datasources | Prometheus only | Loki/Tempo/Thanos added here later |
 | Dashboards | vendored JSON (`dashboards/`) via ConfigMap + sidecar | No grafana.com fetch at pod start; closes ADR 0004's 3rd external dep |
 | Dashboard/datasource sidecars | enabled, all namespaces | Other charts ship dashboards as labelled ConfigMaps |
-| Pod security | non-root (uid 472), seccomp, dropped caps | Matches apps/podinfo pattern |
+| Pod security | non-root (uid 472), seccomp, dropped caps | Matches the podinfo chart pattern |
 | Resources | requests + memory limit, no cpu limit | Reserve always; cpu limit throttles a UI workload |
 | Sign-up | disabled | Admin manages users |

@@ -22,7 +22,7 @@ Probes hit `/readyz` and `/healthz`.
 
 ```bash
 export KUBECONFIG=~/.kube/platform-lab.yaml   # if not already set
-./apps/podinfo/install.sh
+./charts/podinfo/install.sh
 ```
 
 `install.sh` runs `helm upgrade --install` into the `podinfo` namespace.

@@ -55,8 +55,8 @@ jobs:
       # schema, and -ignore-missing-schemas tolerates other CRDs.
       - name: render + validate
         run: |
-          helm dependency update apps/podinfo
-          helm template podinfo apps/podinfo --api-versions monitoring.coreos.com/v1 \
+          helm dependency update charts/podinfo
+          helm template podinfo charts/podinfo --api-versions monitoring.coreos.com/v1 \
             | kubeconform -strict -summary \
                 -schema-location default \
                 -schema-location 'https://raw.githubusercontent.com/datreeio/CRDs-catalog/main/{{.Group}}/{{.ResourceKind}}_{{.ResourceAPIVersion}}.json' \

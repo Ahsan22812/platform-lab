@@ -10,7 +10,8 @@ and security on Kubernetes.
 | `clusters/` | Cluster definitions (currently: local `kind` cluster) |
 | `scripts/` | Helpers to create/destroy the lab cluster |
 | `platform/` | Cluster-wide platform components (observability, security, etc.) |
-| `apps/` | Application workloads running on the platform |
+| `apps/` | Application **source code** for our own services (code + Dockerfile) |
+| `charts/` | Helm charts — the shared `common` library + per-service deployment charts |
 | `scenarios/` | Documented failure and recovery exercises |
 | `docs/` | Architecture, setup, runbooks, decision records (ADRs) |
 

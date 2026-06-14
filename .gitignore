@@ -76,8 +76,8 @@ secrets/
 # regenerated from charts/common/ by `helm dependency update` (install.sh
 # + CI), so not committed. Scoped to apps/ to leave the vendored
 # observability charts under platform/**/charts/ tracked.
-apps/podinfo/charts/
-apps/podinfo/Chart.lock
+charts/podinfo/charts/
+charts/podinfo/Chart.lock
 
 # Local Kubernetes state
 *.tar

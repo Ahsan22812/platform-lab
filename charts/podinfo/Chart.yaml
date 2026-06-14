@@ -18,4 +18,5 @@ appVersion: "6.7.0"
 dependencies:
   - name: common
     version: "0.1.0"
-    repository: "file://../../charts/common"
+    # Sibling under charts/ — short, uniform path for every chart.
+    repository: "file://../common"
