@@ -30,8 +30,10 @@ jobs:
     steps:
       # TODO(layer-4 hardening): pin actions to a commit SHA, not a tag.
       - uses: actions/checkout@v4
-      # shellcheck is preinstalled on the ubuntu runner. -x follows sources.
-      - run: shellcheck -x scripts/*.sh scripts/lib/*.sh
+      # shellcheck is preinstalled on the ubuntu runner. -x follows
+      # sourced files; --source-path=SCRIPTDIR resolves the `source=`
+      # directives relative to each script's own dir (scripts/lib/...).
+      - run: shellcheck -x --source-path=SCRIPTDIR scripts/*.sh scripts/lib/*.sh
 
   yaml:
     runs-on: ubuntu-latest
