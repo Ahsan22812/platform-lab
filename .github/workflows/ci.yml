@@ -1,9 +1,12 @@
 # Tier-1 CI: static checks only — lint and validate, no cluster.
 #
-# Guards everything in the repo on every push/PR: shell scripts, YAML,
-# Kubernetes manifests, vendored chart integrity + renderability, and
-# secrets. Integration testing (spin up kind, install charts) is Tier-2
-# and deliberately deferred — see docs/roadmap.md.
+# Guards on every push/PR: shell scripts (shellcheck), Kubernetes
+# manifests rendered from charts (helm template + kubeconform), vendored
+# chart integrity + renderability, and secrets (gitleaks). No standalone
+# YAML lint — chart templates are Go-templated (not YAML); their output
+# is validated by rendering, and values/Chart.yaml syntax is caught by
+# helm. Integration testing (spin up kind, install charts) is Tier-2 and
+# deliberately deferred — see docs/roadmap.md.
 #
 # Engine: GitHub Actions is this repo's CI gate. Jenkins is planned as a
 # deploy-and-operate lab component, not the repo's gate. CD is Argo CD.
@@ -36,13 +39,6 @@ jobs:
       # --source-path=SCRIPTDIR resolves `source=` dirs per script.
       - run: shellcheck -x --source-path=SCRIPTDIR $(git ls-files '*.sh')
 
-  yaml:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v5
-      - run: pip install yamllint
-      - run: yamllint .
-
   manifests:
     runs-on: ubuntu-latest
     steps:
@@ -53,7 +49,7 @@ jobs:
           curl -sSL https://github.com/yannh/kubeconform/releases/latest/download/kubeconform-linux-amd64.tar.gz | tar xz
           sudo mv kubeconform /usr/local/bin/
       # Render the podinfo chart, then validate the output against the
-      # Kubernetes schema. helm dependency build vendors the shared
+      # Kubernetes schema. helm dependency update vendors the shared
       # 'common' library first. --api-versions forces the ServiceMonitor
       # to render (no live cluster in CI); the CRDs catalog supplies its
       # schema, and -ignore-missing-schemas tolerates other CRDs.
