@@ -28,7 +28,6 @@ stable because other docs reference them.
 - [x] kube-prometheus-stack (Prometheus, Alertmanager; Grafana split out)
 - [x] Standalone Grafana (own chart, own upgrade cadence; vendored dashboards)
 - [ ] Loki (logs)
-- [ ] First runbook: "investigating high CPU"
 - [ ] Right-size resource requests from observed usage. Manual loop
       first (compare requests vs actual in Prometheus after a day of
       runtime — teaches the mechanics). Then the standard production
@@ -160,6 +159,25 @@ can sidestep).
       datacenter pattern; learning value)
 - [ ] Optional: Tailscale mesh as a lower-risk admin path for own
       devices (nothing public on that path at all)
+
+## Operations runbooks & drills (after most infra is in place)
+
+Best done near the END of the build — once the full stack exists,
+there's far more to investigate (real components, throttling, noisy
+neighbors) and the drills are realistic instead of contrived. Each
+written from an actual hands-on session (manufacture the condition,
+investigate live, document what you saw — the node-failure runbook is
+the template).
+
+- [ ] "Investigating high CPU" — load-test/stress a workload (e.g.
+      podinfo), then diagnose via Prometheus/Grafana: which pod, real
+      load vs CFS throttling (`container_cpu_cfs_throttled_*`),
+      resolution (scale / fix / right-size). Exercises metrics-server,
+      the vendored dashboards, the cpu-limit/throttling concept, and
+      right-sizing end-to-end.
+- [ ] Further drills as components land (e.g. "investigating high
+      memory / OOMKills", "tracing a slow request" once Tempo exists,
+      "log spelunking" once Loki exists).
 
 ## Repo tooling (layer-independent)
 
