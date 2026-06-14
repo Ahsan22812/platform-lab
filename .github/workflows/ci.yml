@@ -92,9 +92,14 @@ jobs:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0   # full history so the scan covers all commits
+      # Pinned version, direct download — no GitHub API call (the
+      # unauthenticated API is rate-limited on shared runner IPs). -f
+      # makes a bad URL fail loudly instead of piping a 404 into tar.
+      # Bump deliberately.
       - name: install gitleaks
+        env:
+          GITLEAKS_VERSION: "8.18.4"
         run: |
-          ver=$(curl -s https://api.github.com/repos/gitleaks/gitleaks/releases/latest | grep -oP '"tag_name": *"v\K[^"]+')
-          curl -sSL "https://github.com/gitleaks/gitleaks/releases/download/v${ver}/gitleaks_${ver}_linux_x64.tar.gz" | tar xz
+          curl -fsSL "https://github.com/gitleaks/gitleaks/releases/download/v${GITLEAKS_VERSION}/gitleaks_${GITLEAKS_VERSION}_linux_x64.tar.gz" | tar xz
           sudo mv gitleaks /usr/local/bin/
       - run: gitleaks detect --no-banner --redact --source .
