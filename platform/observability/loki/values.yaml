@@ -1,0 +1,72 @@
+# Helm values for Loki on the platform-lab kind cluster.
+#
+# Chart: grafana-community/loki (Grafana-endorsed maintainer — see
+# charts/SOURCE.txt). appVersion 3.7.2.
+#
+# Monolithic (SingleBinary) mode + filesystem storage — the simplest
+# Loki topology, right for a lab. Object storage (MinIO/S3) + PVCs are
+# the production path, deferred to Layer 3+ (same trigger as the
+# Prometheus/Thanos persistence work).
+#
+# First cut — validate with `helm template` and adjust; the Loki chart
+# is fussy about storage/schema config.
+
+deploymentMode: SingleBinary
+
+loki:
+  auth_enabled: false            # single-tenant; no X-Scope-OrgID needed
+  commonConfig:
+    replication_factor: 1        # one replica — no ring replication
+  storage:
+    type: filesystem             # local disk, not object storage (yet)
+  schemaConfig:
+    configs:
+      - from: "2024-04-01"
+        store: tsdb
+        object_store: filesystem
+        schema: v13
+        index:
+          prefix: index_
+          period: 24h
+  limits_config:
+    retention_period: 168h       # 7d; moot until storage is persistent
+
+# The single binary runs all Loki components in one pod.
+singleBinary:
+  replicas: 1
+  persistence:
+    enabled: false               # emptyDir — logs lost on restart (temporary)
+  resources:
+    requests:
+      cpu: 100m
+      memory: 256Mi
+    limits:
+      memory: 512Mi              # memory limit, no cpu limit (lab policy)
+
+# Scalable-mode components — unused in monolithic, zero them out.
+read:
+  replicas: 0
+write:
+  replicas: 0
+backend:
+  replicas: 0
+
+# Extras a tiny lab doesn't need (avoid extra memcached/canary pods).
+chunksCache:
+  enabled: false
+resultsCache:
+  enabled: false
+lokiCanary:
+  enabled: false
+test:
+  enabled: false
+
+# Subchart deps OFF: filesystem storage (not bundled MinIO), no rollout
+# operator (only needed for zero-downtime scalable rollouts).
+minio:
+  enabled: false
+
+# No nginx gateway — in SingleBinary mode clients talk to the `loki`
+# Service on :3100 directly (Fluent Bit pushes, Grafana queries).
+gateway:
+  enabled: false

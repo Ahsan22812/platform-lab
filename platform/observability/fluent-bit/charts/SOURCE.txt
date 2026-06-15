@@ -1,0 +1,24 @@
+chart:      fluent-bit
+version:    0.57.7
+appVersion: 5.0.7 (Fluent Bit)
+repo:       https://fluent.github.io/helm-charts
+source:     https://github.com/fluent/helm-charts/tree/main/charts/fluent-bit
+pulled:     2026-06-15
+command:    helm pull fluent-bit --repo https://fluent.github.io/helm-charts --version 0.57.7
+verify:     shasum -c fluent-bit-0.57.7.tgz.sha256
+
+Fluent Bit is the vendor-neutral (CNCF graduated) log shipper. Chosen
+over Grafana Alloy so one DaemonSet can fan out to both Loki and (later)
+Elasticsearch for EFK.
+
+To bump: pull the new version, then VERIFY PROVENANCE before trusting
+it — confirm the pulled tarball's hash matches upstream's published
+digest for that version:
+  shasum -a 256 <tgz>
+  curl -s https://fluent.github.io/helm-charts/index.yaml \
+    | awk '/^  [a-z0-9-]+:$/{c=($0=="  fluent-bit:")} c&&/digest:/{d=$2} c&&/version: <NEWVER>$/{print d; exit}'
+The two must match. Then regenerate the .sha256, update CHART_VERSION in
+../install.sh, delete the old tgz + sha256, update this file. Review the
+chart changelog for breaking changes first.
+
+Provenance: 0.57.7 verified equal to upstream index.yaml digest on 2026-06-15.

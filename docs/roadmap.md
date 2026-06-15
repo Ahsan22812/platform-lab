@@ -65,6 +65,11 @@ for exactly this.
 - [ ] Persistence for observability: PVCs for Prometheus, Alertmanager,
       Grafana, Loki (replaces emptyDir — tracked deferral from Layer 2)
 - [ ] Thanos on MinIO (long-term metrics; reuses the Velero object store)
+- [ ] (stretch) Re-deploy Loki as **SimpleScalable on MinIO** (multi
+      replica read/write/backend) + the **rollout-operator** — learn
+      scalable logging + zone-aware rollouts. Needs object storage
+      (filesystem can't back multiple replicas) so it depends on MinIO;
+      zone-awareness is mostly academic on a single-zone kind cluster.
 
 ## Layer 3.5: GitOps & Registry
 
@@ -128,7 +133,13 @@ for exactly this.
       enforces *presence* on multi-replica workloads; the library makes
       compliance the path of least resistance.
 - [ ] Chaos Mesh
-- [ ] Tempo (traces) + a real traced application (moved from Layer 2)
+- [ ] Traces: **Jaeger or Tempo** + a real traced application (moved
+      from Layer 2). Leaning Jaeger (CNCF, vendor-neutral, own UI,
+      OTel-native) — it can store traces in the **same Elasticsearch as
+      EFK** (one backend for logs + traces, same fan-out logic as Fluent
+      Bit). Tempo (Grafana-native, object-storage) is the alternative.
+      Needs app instrumentation (OTel SDK) + a collection path (OTel
+      Collector), so it depends on a coded service existing.
 - [ ] Postgres failover scenario documented
 - [ ] Kafka broker-loss scenario documented
 
@@ -167,7 +178,7 @@ platform first, then put real apps on it. Our own coded services land
 in `apps/<name>/` (source + Dockerfile) with a deployment chart in
 `charts/<name>/` consuming `common` — exercising the apps/charts split
 end-to-end (code → image → chart → deploy). A first such service also
-becomes the "real traced application" Tempo needs (Layer 6) and gives
+becomes the "real traced application" Jaeger/Tempo needs (Layer 6) and gives
 the ops drills below something genuine to investigate.
 
 ## Operations runbooks & drills (after most infra is in place)
@@ -186,7 +197,7 @@ the template).
       the vendored dashboards, the cpu-limit/throttling concept, and
       right-sizing end-to-end.
 - [ ] Further drills as components land (e.g. "investigating high
-      memory / OOMKills", "tracing a slow request" once Tempo exists,
+      memory / OOMKills", "tracing a slow request" once Jaeger/Tempo exists,
       "log spelunking" once Loki exists).
 
 ## Repo tooling (layer-independent)

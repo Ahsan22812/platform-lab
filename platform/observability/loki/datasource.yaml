@@ -1,0 +1,22 @@
+# Grafana datasource for Loki, shipped as a ConfigMap that Grafana's
+# datasource sidecar auto-imports (label grafana_datasource: "1",
+# searchNamespace: ALL). Decoupled — no Grafana reinstall needed; it's
+# picked up whenever this ConfigMap exists. Applied by install.sh.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: loki-grafana-datasource
+  namespace: monitoring
+  labels:
+    grafana_datasource: "1"
+data:
+  loki-datasource.yaml: |
+    apiVersion: 1
+    datasources:
+      - name: Loki
+        type: loki
+        access: proxy
+        uid: loki
+        url: http://loki.monitoring.svc.cluster.local:3100
+        isDefault: false        # Prometheus stays the default
+        editable: false

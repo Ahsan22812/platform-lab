@@ -20,8 +20,16 @@ brew install colima kind kubectl helm k9s kubectx stern
 ## Start the container runtime
 
 ```bash
-colima start --cpu 4 --memory 8 --disk 40
+colima start --cpu 6 --memory 16 --disk 100
 ```
+
+Sizing grows with the lab. Layer 1–2 alone runs fine on `--memory 8`;
+the figures above cover through the CI/CD platform (Argo CD + Harbor)
+and into EFK. The heavy, JVM/data components (Elasticsearch, Kafka,
+Patroni) are what drive memory up — bump toward `--memory 20` if you
+run them all at once. Keep Colima at ≤ ~70% of physical RAM so macOS
+keeps headroom. Resize any time with `colima stop && colima start
+--cpu N --memory N` (the kind cluster survives the restart).
 
 ## Create the cluster
 

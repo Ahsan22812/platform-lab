@@ -1,0 +1,27 @@
+chart:      loki
+version:    17.4.1
+appVersion: 3.7.2 (Grafana Loki)
+repo:       https://grafana-community.github.io/helm-charts
+source:     https://github.com/grafana/loki (chart maintained at
+            https://github.com/grafana-community/helm-charts)
+pulled:     2026-06-15
+command:    helm pull loki --repo https://grafana-community.github.io/helm-charts --version 17.4.1
+verify:     shasum -c loki-17.4.1.tgz.sha256
+
+NOTE: Grafana retired grafana/helm-charts (Jan 2026); the Loki chart is
+now maintained by Grafana Community Champions at grafana-community/
+helm-charts (Grafana's own Loki docs point here). Chart-version lineage
+(17.x) is independent of the Loki app version (3.7.2).
+
+To bump: pull the new version, then VERIFY PROVENANCE before trusting
+it — confirm the pulled tarball's hash matches upstream's published
+digest for that version:
+  shasum -a 256 <tgz>
+  curl -s https://grafana-community.github.io/helm-charts/index.yaml \
+    | awk '/^  [a-z].*:$/{c=($0=="  loki:")} c&&/digest:/{d=$2} c&&/version: <NEWVER>$/{print d; exit}'
+The two must match (a mismatch means upstream repackaged the same
+version — abnormal, investigate). Then regenerate the .sha256, update
+CHART_VERSION in ../install.sh, delete the old tgz + sha256, update this
+file. Review the chart CHANGELOG for breaking changes first.
+
+Provenance: 17.4.1 verified equal to upstream index.yaml digest on 2026-06-15.
