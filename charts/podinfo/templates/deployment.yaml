@@ -20,7 +20,7 @@ spec:
       {{- include "common.topologySpreadConstraints" . | nindent 6 }}
       containers:
         - name: podinfo
-          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}@{{ .Values.image.digest }}"
+          image: {{ include "podinfo.image" . | quote }}
           imagePullPolicy: {{ .Values.image.pullPolicy }}
           ports:
             - name: http
