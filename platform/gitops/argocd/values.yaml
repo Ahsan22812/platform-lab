@@ -1,0 +1,82 @@
+# Helm values for Argo CD on the platform-lab kind cluster.
+#
+# Chart: argo/argo-cd (argoproj/argo-helm) — vendored, see charts/SOURCE.txt.
+#
+# Argo CD is the GitOps engine: it watches this repo and reconciles the
+# cluster to match git. It is the ONE component installed imperatively (by
+# install.sh) — the bootstrap that then manages everything else. Later it
+# can manage itself (an Application pointing back at this directory).
+#
+# Resource policy (lab): every component sets cpu+memory requests and a
+# memory limit, but NO cpu limit (cpu limits cause CFS throttling). Single
+# replica each — no HA on a 3-node lab. Numbers are conservative starting
+# points; bump if a component OOMs.
+
+# argocd-server — the API server + web UI.
+server:
+  replicas: 1
+  resources:
+    requests:
+      cpu: 50m
+      memory: 128Mi
+    limits:
+      memory: 256Mi
+
+# application-controller — the reconcile engine (git desired-state → cluster).
+# The heaviest component; give it the most headroom.
+controller:
+  replicas: 1
+  resources:
+    requests:
+      cpu: 100m
+      memory: 256Mi
+    limits:
+      memory: 512Mi
+
+# repo-server — clones git and renders manifests (helm template / kustomize).
+repoServer:
+  replicas: 1
+  resources:
+    requests:
+      cpu: 50m
+      memory: 128Mi
+    limits:
+      memory: 256Mi
+
+# ApplicationSet controller — generates Applications from generators. We use
+# the Git-directory generator (step 2), so this MUST stay enabled.
+applicationSet:
+  replicas: 1
+  resources:
+    requests:
+      cpu: 25m
+      memory: 64Mi
+    limits:
+      memory: 128Mi
+
+# Redis — Argo CD's cache (required). It's a cache, not a datastore, so no
+# persistence needed (unlike Loki/Prometheus).
+redis:
+  resources:
+    requests:
+      cpu: 25m
+      memory: 64Mi
+    limits:
+      memory: 128Mi
+
+# Dex (SSO broker) — OFF. No external IdP yet, and SSO will arrive later at
+# the EDGE via Cloudflare Access, not via Dex. Saves a pod.
+dex:
+  enabled: false
+
+# Notifications controller — OFF. No alert/notification integrations yet.
+notifications:
+  enabled: false
+
+configs:
+  params:
+    # Serve the API/UI over plain HTTP. We reach Argo CD by port-forward for
+    # now; later TLS is terminated UPSTREAM (Cloudflare edge + Istio mesh),
+    # so the server doing its own TLS would just be a redundant inner hop.
+    # insecure=true also avoids self-signed-cert warnings during port-forward.
+    server.insecure: true

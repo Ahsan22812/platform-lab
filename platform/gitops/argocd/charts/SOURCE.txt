@@ -1,0 +1,24 @@
+chart:      argo-cd
+version:    9.5.21
+appVersion: v3.4.3 (Argo CD)
+repo:       https://argoproj.github.io/argo-helm
+source:     https://github.com/argoproj/argo-helm/tree/main/charts/argo-cd
+pulled:     2026-06-16
+command:    helm pull argo-cd --repo https://argoproj.github.io/argo-helm --version 9.5.21
+verify:     shasum -c argo-cd-9.5.21.tgz.sha256
+
+Argo CD is the GitOps continuous-delivery engine and the cluster bootstrap:
+installed imperatively (../install.sh), it then manages everything else
+declaratively from this git repo.
+
+To bump: pull the new version, then VERIFY PROVENANCE before trusting it —
+confirm the pulled tarball's hash matches upstream's published digest for
+that version:
+  shasum -a 256 <tgz>
+  curl -s https://argoproj.github.io/argo-helm/index.yaml \
+    | awk '/^  [a-z0-9-]+:$/{c=($0=="  argo-cd:")} c&&/digest:/{d=$2} c&&/version: <NEWVER>$/{print d; exit}'
+The two must match. Then regenerate the .sha256, update CHART_VERSION in
+../install.sh, delete the old tgz + sha256, update this file. Review the
+chart changelog for breaking changes first (Argo CD majors can change CRDs).
+
+Provenance: 9.5.21 verified equal to upstream index.yaml digest on 2026-06-16.
