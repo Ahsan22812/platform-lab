@@ -49,8 +49,13 @@ spec:
         # "podinfo"), matching the convention install.sh already used.
         namespace: "{{.path.basename}}"
       syncPolicy:
-        # Manual sync to start — you click Sync and watch the first
-        # reconcile. We graduate to automated + selfHeal + prune once it's
-        # proven (see platform/gitops/README.md).
+        # Automated GitOps: sync on every git change, revert manual drift
+        # back to git (selfHeal), and delete resources removed from git
+        # (prune). Lab choice for the learning payoff — production teams
+        # often keep these off for manual control (see README.md).
+        automated:
+          selfHeal: true
+          prune: true
         syncOptions:
           - CreateNamespace=true
+          - PruneLast=true   # prune only after everything else syncs
