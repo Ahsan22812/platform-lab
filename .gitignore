@@ -72,12 +72,16 @@ secrets/
 # platform/**/charts/ ARE committed (see ADR 0004). Only the local
 # Helm home/cache is ignored.
 .helm/
-# Built dependency artifacts of the local 'common' library chart —
-# regenerated from charts/common/ by `helm dependency update` (install.sh
-# + CI), so not committed. Scoped to apps/ to leave the vendored
-# observability charts under platform/**/charts/ tracked.
+# Built dependency artifact of the local 'common' library chart (the
+# packaged charts/common-*.tgz) — rebuilt by `helm dependency build`
+# (install.sh, CI, and Argo CD's repo-server at render time), so not
+# committed. Scoped to charts/podinfo/ so the vendored observability
+# charts under platform/**/charts/ stay tracked.
+#
+# Chart.lock IS committed (deliberately NOT ignored below): Argo CD renders
+# podinfo from git and needs the lock to run `helm dependency build`
+# deterministically + resolve the file://../common dependency.
 charts/podinfo/charts/
-charts/podinfo/Chart.lock
 
 # Local Kubernetes state
 *.tar

@@ -1,0 +1,56 @@
+# ApplicationSet — auto-discovers deployable charts and creates one Argo CD
+# Application per chart directory (the Git-directory generator pattern, the
+# 2026 best practice for a monorepo over hand-written app-of-apps children).
+#
+# Add a new chart under charts/ → it becomes a managed Application on the
+# next reconcile. No per-app boilerplate.
+#
+# This ApplicationSet is the GitOps ROOT: applied once with kubectl (it can't
+# generate itself), then it owns the rest. It lives in git for record and so
+# Argo CD can manage it itself later.
+apiVersion: argoproj.io/v1alpha1
+kind: ApplicationSet
+metadata:
+  name: platform-charts
+  namespace: argocd
+spec:
+  goTemplate: true
+  goTemplateOptions: ["missingkey=error"]
+  generators:
+    - git:
+        # PUBLIC repo → Argo CD clones it anonymously over HTTPS; no git
+        # credentials needed in-cluster. (Our local pushes use SSH; that's
+        # separate from how Argo CD reads the repo.)
+        repoURL: https://github.com/Ahsan22812/platform-lab.git
+        revision: main
+        directories:
+          # Every direct child of charts/ becomes an app…
+          - path: charts/*
+          # …except the 'common' library chart — it's type: library, renders
+          # no resources, and is consumed as a dependency, not deployed.
+          - path: charts/common
+            exclude: true
+  template:
+    metadata:
+      # App name = the chart dir name (e.g. "podinfo").
+      name: "{{.path.basename}}"
+    spec:
+      project: default
+      source:
+        repoURL: https://github.com/Ahsan22812/platform-lab.git
+        targetRevision: main
+        path: "{{.path.path}}"
+        helm:
+          valueFiles:
+            - values.yaml
+      destination:
+        server: https://kubernetes.default.svc
+        # Each chart deploys to a namespace named after it (podinfo → ns
+        # "podinfo"), matching the convention install.sh already used.
+        namespace: "{{.path.basename}}"
+      syncPolicy:
+        # Manual sync to start — you click Sync and watch the first
+        # reconcile. We graduate to automated + selfHeal + prune once it's
+        # proven (see platform/gitops/README.md).
+        syncOptions:
+          - CreateNamespace=true
