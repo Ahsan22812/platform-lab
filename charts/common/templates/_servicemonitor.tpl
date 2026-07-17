@@ -9,6 +9,12 @@ doesn't include this and writes its own.
 
 Usage — the consuming chart's templates/servicemonitor.yaml is just:
   {{ include "common.servicemonitor" . }}
+
+Portability: serviceMonitor.labels (optional, default unset) merges extra
+labels into metadata — for clusters whose Prometheus label-gates discovery
+(e.g. the kube-prometheus-stack default `release: <name>` selector). Our
+lab's Prometheus discovers ALL ServiceMonitors (open selector), so leave
+it unset here; set it per-deployment when a gated cluster requires it.
 */}}
 {{- define "common.servicemonitor" -}}
 {{- if .Capabilities.APIVersions.Has "monitoring.coreos.com/v1" -}}
@@ -18,6 +24,9 @@ metadata:
   name: {{ include "common.fullname" . }}
   labels:
     {{- include "common.labels" . | nindent 4 }}
+    {{- with .Values.serviceMonitor.labels }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
 spec:
   selector:
     matchLabels:
