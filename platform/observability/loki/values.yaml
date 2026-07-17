@@ -31,6 +31,26 @@ loki:
   limits_config:
     retention_period: 168h       # 7d; moot until storage is persistent
 
+    # --- Cardinality/abuse guardrails ---
+    # Loki can't dictate WHICH labels arrive (the shipper decides — see
+    # fluent-bit's Label_Keys); these bound HOW MUCH label/stream/volume
+    # abuse it tolerates. Trips return 429; Fluent Bit buffers + retries
+    # + logs the error — visible and safe. Normal state here: ~5 labels
+    # per stream, well under 200 streams total.
+    # Tightened vs Loki 3.x defaults (defaults in parens):
+    max_label_names_per_series: 10     # (15) label-bloat breaker
+    max_label_name_length: 256         # (1024)
+    max_label_value_length: 1024       # (2048) k8s names cap at 253 chars
+    # Pinned AT defaults — visible circuit breakers, not behavior changes:
+    max_global_streams_per_user: 5000  # cardinality-explosion breaker
+                                       # (single tenant = whole cluster)
+    per_stream_rate_limit: 3MB         # one log-spamming pod can't
+    per_stream_rate_limit_burst: 15MB  # starve everyone else
+    reject_old_samples: true           # stale buffer replays >7d old are
+    reject_old_samples_max_age: 168h   # retention fodder anyway
+    # ingestion_rate_mb stays at default 4MB/s — raise deliberately only
+    # if Fluent Bit ever logs 429s on ingest rate.
+
 # The single binary runs all Loki components in one pod.
 singleBinary:
   replicas: 1

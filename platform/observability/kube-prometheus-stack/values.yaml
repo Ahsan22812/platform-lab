@@ -43,6 +43,26 @@ prometheus:
     # storage is persistent.
     storageSpec: {}
 
+    # Disk breaker: emptyDir lives on the NODE's disk and `retention` is
+    # time-based only — a cardinality surge could fill the node before 7d
+    # pass. Whichever limit (time or size) hits first wins.
+    retentionSize: 4GB
+
+    # --- Cardinality guardrails (circuit breakers) ---
+    # Counterweight to our open ServiceMonitor selector below: ANY
+    # ServiceMonitor in ANY namespace gets scraped, so these bound what a
+    # misbehaving target can do. All default to 0 (= UNLIMITED) upstream.
+    # A tripped target fails its WHOLE scrape (up=0, "sample limit
+    # exceeded" on the Targets page; default rules alert on the exceeded-
+    # limit counters) — other targets unaffected.
+    # Sized 2026-07-18 against live topk(scrape_samples_scraped):
+    # apiserver ~22k >> KSM ~2.6k >> kubelet ~2.4k.
+    enforcedSampleLimit: 50000          # ~2.3x our fattest target (apiserver)
+    enforcedLabelLimit: 30              # labels per series (we see <15)
+    enforcedLabelNameLengthLimit: 256
+    enforcedLabelValueLengthLimit: 2048 # values can be paths/URLs — roomier
+    enforcedTargetLimit: 100            # one SM accidentally matching the world
+
     # Discover ServiceMonitor / PodMonitor / Probe / PrometheusRule
     # objects regardless of their labels. Default (true) makes Prometheus
     # only pick up resources labelled with this chart's release — which
