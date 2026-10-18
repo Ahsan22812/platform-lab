@@ -1,0 +1,6 @@
+# Vendoring artifacts (provenance + checksum) live in charts/ next to the
+# tarball per ADR 0004. Helm 4's directory loader treats every charts/
+# entry as a subchart and errors on non-chart files (Helm 3 skipped them
+# silently) — exclude them from chart loading.
+charts/SOURCE.txt
+charts/*.sha256

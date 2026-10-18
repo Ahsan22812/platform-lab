@@ -1,0 +1,14 @@
+apiVersion: v2
+name: fluent-bit
+description: >-
+  Thin umbrella chart so Argo CD can deploy Fluent Bit from a git path. The
+  real chart is the vendored tarball in charts/ (Helm renders any chart in
+  charts/ as a subchart) — this umbrella exists only so the vendored .tgz
+  stays the source of truth (ADR 0004) while GitOps consumes it without
+  unpacking. Configure Fluent Bit under the `fluent-bit:` key in values.yaml
+  (subchart value scoping).
+type: application
+# Umbrella version — bump on wrapper/values changes (independent of the
+# vendored Fluent Bit chart version, which lives in charts/SOURCE.txt).
+version: 0.1.0
+appVersion: "5.0.7"

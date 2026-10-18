@@ -76,13 +76,18 @@ jobs:
           for sha in platform/observability/*/charts/*.sha256; do
             ( cd "$(dirname "$sha")" && shasum -c "$(basename "$sha")" )
           done
-      # Renderability: every vendored chart must template cleanly. Uses
-      # the component's values.yaml once it exists, default values until then.
+      # Renderability: every vendored chart must template cleanly.
+      # Umbrella components (Chart.yaml present) render as a chart DIRECTORY —
+      # the vendored .tgz becomes a subchart and values nest under its key —
+      # exactly how Argo CD renders them. Non-umbrella components render the
+      # bare .tgz with the component's values.yaml (default values until then).
       - name: helm template smoke test
         run: |
           for chart in platform/observability/*/charts/*.tgz; do
             comp="$(dirname "$(dirname "$chart")")"
-            if [ -f "$comp/values.yaml" ]; then
+            if [ -f "$comp/Chart.yaml" ]; then
+              helm template smoke "$comp" >/dev/null
+            elif [ -f "$comp/values.yaml" ]; then
               helm template smoke "$chart" --values "$comp/values.yaml" >/dev/null
             else
               helm template smoke "$chart" >/dev/null

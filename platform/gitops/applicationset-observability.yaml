@@ -1,0 +1,53 @@
+# ApplicationSet for the observability stack (platform/observability/*).
+#
+# Separate from platform-charts (applicationset.yaml) because these apps
+# break its conventions: they all deploy to the FIXED namespace `monitoring`
+# (not a namespace named after the chart), and each component is an umbrella
+# chart wrapping a vendored third-party .tgz (ADR 0004) rather than a chart
+# we author.
+#
+# Paths are listed EXPLICITLY (not platform/observability/*) and added one
+# by one as each component gains its umbrella Chart.yaml — a wildcard would
+# generate broken Applications for the not-yet-converted directories.
+# Remaining to add: loki, grafana, kube-prometheus-stack (kps last; its
+# Application relies on ServerSideApply below for the huge CRDs).
+#
+# Like the platform-charts root, this is applied once with kubectl:
+#   kubectl apply -f platform/gitops/applicationset-observability.yaml
+apiVersion: argoproj.io/v1alpha1
+kind: ApplicationSet
+metadata:
+  name: platform-observability
+  namespace: argocd
+spec:
+  goTemplate: true
+  goTemplateOptions: ["missingkey=error"]
+  generators:
+    - git:
+        repoURL: https://github.com/Ahsan22812/platform-lab.git
+        revision: main
+        directories:
+          - path: platform/observability/fluent-bit
+  template:
+    metadata:
+      name: "{{.path.basename}}"
+    spec:
+      project: default
+      source:
+        repoURL: https://github.com/Ahsan22812/platform-lab.git
+        targetRevision: main
+        path: "{{.path.path}}"
+        helm:
+          valueFiles:
+            - values.yaml
+      destination:
+        server: https://kubernetes.default.svc
+        namespace: monitoring
+      syncPolicy:
+        automated:
+          selfHeal: true
+          prune: true
+        syncOptions:
+          - CreateNamespace=true
+          - PruneLast=true
+          - ServerSideApply=true
