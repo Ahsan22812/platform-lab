@@ -118,11 +118,26 @@ for exactly this.
       secrets change in-cluster with no git commit, so the
       checksum/config pattern (our standard for git-driven config)
       never sees them — nothing restarts on rotation. Reloader covers
-      exactly that gap. Deliberately: opt-in annotations only (never
-      --auto-reload-all), scoped to workloads consuming ESO secrets,
-      and `ignoreDifferences` for its injected pod-template field in
-      the Applications from day one, or it fights Argo CD selfHeal
-      (revert → second rollout). Decided 2026-10-19; until then,
+      exactly that gap. Deliberately, decided 2026-10-19:
+      - **search/match form from the start** (scales without per-secret
+        bookkeeping): `reloader.stakater.com/search: "true"` on
+        consuming workloads; `reloader.stakater.com/match: "true"`
+        stamped on every ESO-created secret **by the shared
+        ExternalSecret template** — one place, so rotated secrets are
+        born marked while git-rendered CMs/Secrets never are (keeps
+        Reloader's territory disjoint from checksum/config — no double
+        restarts on git pushes).
+      - **Never `auto: "true"`** (watches ALL of a workload's inputs →
+        overlaps checksum on that same workload → double rollouts) and
+        never `--auto-reload-all`.
+      - Known gap: an ExternalSecret created outside the shared
+        template misses the `match` stamp → rotation silently stops
+        restarting that consumer. Rotation runbook therefore ends with
+        a verify step: rotate → confirm consumer pods rolled.
+      - `ignoreDifferences` for Reloader's injected pod-template field
+        in the Applications from day one, or it fights Argo CD selfHeal
+        (revert → second rollout).
+      Until then,
       checksum annotations + per-chart reload mechanisms cover all
       config change, which is git-driven by construction.
 - [ ] Grafana admin credential via ESO + Vault (closes the Layer-2
