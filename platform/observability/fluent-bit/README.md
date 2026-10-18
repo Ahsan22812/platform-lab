@@ -14,12 +14,19 @@ Chart: `fluent/fluent-bit` — **vendored** in [`charts/`](charts/)
 
 ## Install
 
-Loki must be installed first (Fluent Bit pushes to it — `install.sh`
-checks).
+**Deployed by Argo CD** — this directory is an umbrella chart (the
+vendored `.tgz` renders as its subchart). The `platform-observability`
+ApplicationSet ([`platform/gitops/`](../../gitops/)) generates the
+Application; changes deploy by **git push**, not by hand. Loki ordering
+sorts itself out — the Loki output retries until the Service exists.
 
+To bump the chart: pull the new `.tgz` + regenerate `.sha256` per
+[`charts/SOURCE.txt`](charts/SOURCE.txt), update the version in
+`Chart.yaml`'s `dependencies`, push.
+
+Break-glass only (Argo CD itself down):
 ```bash
-export KUBECONFIG=~/.kube/platform-lab.yaml   # if not already set
-./platform/observability/fluent-bit/install.sh
+helm upgrade --install fluent-bit platform/observability/fluent-bit -n monitoring
 ```
 
 ## Verify
@@ -36,9 +43,9 @@ short labels).
 
 ## Uninstall
 
-```bash
-helm uninstall fluent-bit -n monitoring
-```
+Remove this component's path from
+`platform/gitops/applicationset-observability.yaml` and push — the
+generator deletes the Application and prunes its resources.
 
 ## Choices baked into this install
 

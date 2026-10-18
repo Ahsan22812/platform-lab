@@ -12,3 +12,11 @@ type: application
 # vendored Fluent Bit chart version, which lives in charts/SOURCE.txt).
 version: 0.1.0
 appVersion: "5.0.7"
+# Declared (not just auto-included from charts/) so Helm's dependency
+# machinery processes any nested dependency conditions — undeclared
+# tarballs render wholesale (see the loki umbrella, where this bit).
+# repository empty: satisfied by the vendored tgz already in charts/.
+dependencies:
+  - name: fluent-bit
+    version: "0.57.7"
+    repository: ""

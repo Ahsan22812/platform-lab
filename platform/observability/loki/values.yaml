@@ -1,92 +1,115 @@
-# Helm values for Loki on the platform-lab kind cluster.
+# Helm values for the Loki umbrella chart on platform-lab.
 #
-# Chart: grafana-community/loki (Grafana-endorsed maintainer — see
-# charts/SOURCE.txt). appVersion 3.7.2.
+# This directory is a thin umbrella: the real chart is the vendored
+# charts/loki-17.4.1.tgz (subchart name "loki"), so ALL Loki settings nest
+# under the top-level `loki:` key below (subchart value scoping). Heads-up:
+# the Loki chart's own config section is ALSO named `loki`, so paths read
+# `loki.loki.*` — outer = the subchart's name, inner = the chart's key.
+# Keeping the .tgz vendored (ADR 0004) lets Argo CD consume it from a git
+# path without unpacking the chart.
 #
-# Monolithic (SingleBinary) mode + filesystem storage — the simplest
-# Loki topology, right for a lab. Object storage (MinIO/S3) + PVCs are
-# the production path, deferred to Layer 3+ (same trigger as the
+# Monolithic (SingleBinary) mode + filesystem storage — the simplest Loki
+# topology, right for a lab. Object storage (MinIO/S3) + PVCs are the
+# production path, deferred to Layer 3+ (same trigger as the
 # Prometheus/Thanos persistence work).
-#
-# First cut — validate with `helm template` and adjust; the Loki chart
-# is fussy about storage/schema config.
 
-deploymentMode: SingleBinary
-
-loki:
-  auth_enabled: false            # single-tenant; no X-Scope-OrgID needed
-  commonConfig:
-    replication_factor: 1        # one replica — no ring replication
-  storage:
-    type: filesystem             # local disk, not object storage (yet)
-  schemaConfig:
-    configs:
-      - from: "2024-04-01"
-        store: tsdb
-        object_store: filesystem
-        schema: v13
-        index:
-          prefix: index_
-          period: 24h
-  limits_config:
-    retention_period: 168h       # 7d; moot until storage is persistent
-
-    # --- Cardinality/abuse guardrails ---
-    # Loki can't dictate WHICH labels arrive (the shipper decides — see
-    # fluent-bit's Label_Keys); these bound HOW MUCH label/stream/volume
-    # abuse it tolerates. Trips return 429; Fluent Bit buffers + retries
-    # + logs the error — visible and safe. Normal state here: ~5 labels
-    # per stream, well under 200 streams total.
-    # Tightened vs Loki 3.x defaults (defaults in parens):
-    max_label_names_per_series: 10     # (15) label-bloat breaker
-    max_label_name_length: 256         # (1024)
-    max_label_value_length: 1024       # (2048) k8s names cap at 253 chars
-    # Pinned AT defaults — visible circuit breakers, not behavior changes:
-    max_global_streams_per_user: 5000  # cardinality-explosion breaker
-                                       # (single tenant = whole cluster)
-    per_stream_rate_limit: 3MB         # one log-spamming pod can't
-    per_stream_rate_limit_burst: 15MB  # starve everyone else
-    reject_old_samples: true           # stale buffer replays >7d old are
-    reject_old_samples_max_age: 168h   # retention fodder anyway
-    # ingestion_rate_mb stays at default 4MB/s — raise deliberately only
-    # if Fluent Bit ever logs 429s on ingest rate.
-
-# The single binary runs all Loki components in one pod.
-singleBinary:
-  replicas: 1
-  persistence:
-    enabled: false               # emptyDir — logs lost on restart (temporary)
-  resources:
-    requests:
-      cpu: 100m
-      memory: 256Mi
-    limits:
-      memory: 512Mi              # memory limit, no cpu limit (lab policy)
-
-# Scalable-mode components — unused in monolithic, zero them out.
-read:
-  replicas: 0
-write:
-  replicas: 0
-backend:
-  replicas: 0
-
-# Extras a tiny lab doesn't need (avoid extra memcached/canary pods).
-chunksCache:
-  enabled: false
-resultsCache:
-  enabled: false
-lokiCanary:
-  enabled: false
-test:
-  enabled: false
-
-# Subchart deps OFF: filesystem storage (not bundled MinIO), no rollout
-# operator (only needed for zero-downtime scalable rollouts).
+# --- Nested-dependency kill-switches: MUST live at TOP level ---
+# The loki chart bundles minio + rollout-operator as conditional deps
+# (condition: minio.enabled / rollout_operator.enabled). Two Helm rules
+# make this block necessary (both verified by render-diff, 2026-10-18):
+#  1. The umbrella must DECLARE loki in Chart.yaml `dependencies:` — an
+#     undeclared tarball in charts/ renders WHOLESALE, nested deps
+#     included, conditions never consulted (we watched a default-credential
+#     MinIO appear).
+#  2. With conditions engaged, their paths resolve against the ROOT
+#     values — the loki chart's own `minio.enabled: false` default now
+#     sits under `loki.` where conditions can't see it, so the toggles
+#     must be repeated here at top level.
+# The `loki.minio`/`loki.gateway` copies below still matter for the
+# chart's OWN template logic; these govern dependency inclusion.
 minio:
   enabled: false
-
-# No nginx gateway — in SingleBinary mode clients talk to the `loki`
-# Service on :3100 directly (Fluent Bit pushes, Grafana queries).
-gateway:
+rollout_operator:
   enabled: false
+
+loki:
+
+  deploymentMode: SingleBinary
+
+  loki:
+    auth_enabled: false            # single-tenant; no X-Scope-OrgID needed
+    commonConfig:
+      replication_factor: 1        # one replica — no ring replication
+    storage:
+      type: filesystem             # local disk, not object storage (yet)
+    schemaConfig:
+      configs:
+        - from: "2024-04-01"
+          store: tsdb
+          object_store: filesystem
+          schema: v13
+          index:
+            prefix: index_
+            period: 24h
+    limits_config:
+      retention_period: 168h       # 7d; moot until storage is persistent
+
+      # --- Cardinality/abuse guardrails ---
+      # Loki can't dictate WHICH labels arrive (the shipper decides — see
+      # fluent-bit's Label_Keys); these bound HOW MUCH label/stream/volume
+      # abuse it tolerates. Trips return 429; Fluent Bit buffers + retries
+      # + logs the error — visible and safe. Normal state here: ~5 labels
+      # per stream, well under 200 streams total.
+      # Tightened vs Loki 3.x defaults (defaults in parens):
+      max_label_names_per_series: 10     # (15) label-bloat breaker
+      max_label_name_length: 256         # (1024)
+      max_label_value_length: 1024       # (2048) k8s names cap at 253 chars
+      # Pinned AT defaults — visible circuit breakers, not behavior changes:
+      max_global_streams_per_user: 5000  # cardinality-explosion breaker
+                                         # (single tenant = whole cluster)
+      per_stream_rate_limit: 3MB         # one log-spamming pod can't
+      per_stream_rate_limit_burst: 15MB  # starve everyone else
+      reject_old_samples: true           # stale buffer replays >7d old are
+      reject_old_samples_max_age: 168h   # retention fodder anyway
+      # ingestion_rate_mb stays at default 4MB/s — raise deliberately only
+      # if Fluent Bit ever logs 429s on ingest rate.
+
+  # The single binary runs all Loki components in one pod.
+  singleBinary:
+    replicas: 1
+    persistence:
+      enabled: false               # emptyDir — logs lost on restart (temporary)
+    resources:
+      requests:
+        cpu: 100m
+        memory: 256Mi
+      limits:
+        memory: 512Mi              # memory limit, no cpu limit (lab policy)
+
+  # Scalable-mode components — unused in monolithic, zero them out.
+  read:
+    replicas: 0
+  write:
+    replicas: 0
+  backend:
+    replicas: 0
+
+  # Extras a tiny lab doesn't need (avoid extra memcached/canary pods).
+  chunksCache:
+    enabled: false
+  resultsCache:
+    enabled: false
+  lokiCanary:
+    enabled: false
+  test:
+    enabled: false
+
+  # Subchart deps OFF: filesystem storage (not bundled MinIO), no rollout
+  # operator (only needed for zero-downtime scalable rollouts).
+  minio:
+    enabled: false
+
+  # No nginx gateway — in SingleBinary mode clients talk to the `loki`
+  # Service on :3100 directly (Fluent Bit pushes, Grafana queries).
+  gateway:
+    enabled: false

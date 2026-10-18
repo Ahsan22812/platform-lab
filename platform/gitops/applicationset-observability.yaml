@@ -28,6 +28,7 @@ spec:
         revision: main
         directories:
           - path: platform/observability/fluent-bit
+          - path: platform/observability/loki
   template:
     metadata:
       name: "{{.path.basename}}"

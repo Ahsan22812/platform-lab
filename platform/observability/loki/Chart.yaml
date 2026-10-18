@@ -1,0 +1,25 @@
+apiVersion: v2
+name: loki
+description: >-
+  Thin umbrella chart so Argo CD can deploy Loki from a git path. The real
+  chart is the vendored tarball in charts/ (Helm renders any chart in
+  charts/ as a subchart) — this umbrella exists only so the vendored .tgz
+  stays the source of truth (ADR 0004) while GitOps consumes it without
+  unpacking. Configure Loki under the `loki:` key in values.yaml (subchart
+  value scoping — note the chart's own config key is ALSO `loki`, so paths
+  read loki.loki.*). The umbrella's templates/ additionally carries the
+  Grafana datasource ConfigMap, so Argo CD manages it with the release.
+type: application
+# Umbrella version — bump on wrapper/values changes (independent of the
+# vendored Loki chart version, which lives in charts/SOURCE.txt).
+version: 0.1.0
+appVersion: "3.7.2"
+# Declared (not just auto-included from charts/) so Helm's dependency
+# machinery processes the loki chart's OWN nested dependency conditions
+# (minio.enabled / rollout_operator.enabled) — undeclared tarballs render
+# wholesale, conditions ignored. repository empty: satisfied by the
+# vendored tgz already in charts/.
+dependencies:
+  - name: loki
+    version: "17.4.1"
+    repository: ""

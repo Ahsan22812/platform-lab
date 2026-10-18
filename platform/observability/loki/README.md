@@ -14,14 +14,24 @@ ADR 0004). appVersion 3.7.2.
 
 ## Install
 
+**Deployed by Argo CD** — this directory is an umbrella chart (the
+vendored `.tgz` renders as its subchart; the Grafana datasource ConfigMap
+ships from [`templates/`](templates/)). The `platform-observability`
+ApplicationSet ([`platform/gitops/`](../../gitops/)) generates the
+Application; changes deploy by **git push**, not by hand.
+
+To bump the chart: pull the new `.tgz` + regenerate `.sha256` per
+[`charts/SOURCE.txt`](charts/SOURCE.txt), update the version in
+`Chart.yaml`'s `dependencies`, push.
+
+Break-glass only (Argo CD itself down):
 ```bash
-export KUBECONFIG=~/.kube/platform-lab.yaml   # if not already set
-./platform/observability/loki/install.sh
+helm upgrade --install loki platform/observability/loki -n monitoring
 ```
 
-Install order: Loki → Fluent Bit (needs Loki's endpoint). Grafana can be
-installed before or after — its datasource sidecar picks Loki up whenever
-the datasource ConfigMap appears.
+Install order sorts itself out — Fluent Bit retries until Loki's Service
+exists; Grafana's sidecar picks the datasource up whenever the ConfigMap
+appears.
 
 ## Verify
 
@@ -34,9 +44,9 @@ Grafana (Explore → Loki) with e.g. `{namespace="podinfo"}`.
 
 ## Uninstall
 
-```bash
-helm uninstall loki -n monitoring
-```
+Remove this component's path from
+`platform/gitops/applicationset-observability.yaml` and push — the
+generator deletes the Application and prunes its resources.
 
 ## Choices baked into this install
 
