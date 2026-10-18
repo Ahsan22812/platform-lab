@@ -6,11 +6,11 @@
 # chart wrapping a vendored third-party .tgz (ADR 0004) rather than a chart
 # we author.
 #
-# Paths are listed EXPLICITLY (not platform/observability/*) and added one
-# by one as each component gains its umbrella Chart.yaml — a wildcard would
-# generate broken Applications for the not-yet-converted directories.
-# Remaining to add: loki, grafana, kube-prometheus-stack (kps last; its
-# Application relies on ServerSideApply below for the huge CRDs).
+# Paths are listed EXPLICITLY (not platform/observability/*) so a future
+# non-chart directory under platform/observability/ can't generate a broken
+# Application. All four components are converted (kps's huge CRDs rely on
+# ServerSideApply below); a new component joins by gaining an umbrella
+# Chart.yaml and a path entry here.
 #
 # Like the platform-charts root, this is applied once with kubectl:
 #   kubectl apply -f platform/gitops/applicationset-observability.yaml
@@ -30,6 +30,7 @@ spec:
           - path: platform/observability/fluent-bit
           - path: platform/observability/loki
           - path: platform/observability/grafana
+          - path: platform/observability/kube-prometheus-stack
   template:
     metadata:
       name: "{{.path.basename}}"

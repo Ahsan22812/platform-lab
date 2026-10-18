@@ -1,0 +1,27 @@
+apiVersion: v2
+name: kube-prometheus-stack
+description: >-
+  Thin umbrella chart so Argo CD can deploy kube-prometheus-stack from a
+  git path. The real chart is the vendored tarball in charts/ (declared
+  below; Helm renders it as a subchart) — this umbrella exists only so the
+  vendored .tgz stays the source of truth (ADR 0004) while GitOps consumes
+  it without unpacking. Configure the stack under the
+  `kube-prometheus-stack:` key in values.yaml (subchart value scoping);
+  the ROOT-level enable/disable toggles there control the chart's five
+  conditional dependencies (see values.yaml header). The stack's huge CRDs
+  apply cleanly because the ApplicationSet sets ServerSideApply=true.
+type: application
+# Umbrella version — bump on wrapper/values changes (independent of the
+# vendored chart version, which lives in charts/SOURCE.txt).
+version: 0.1.0
+appVersion: "v0.87.0"
+# Declared (not just auto-included from charts/) so Helm's dependency
+# machinery processes the chart's OWN conditional dependencies (crds,
+# kube-state-metrics, node-exporter, grafana, windows-exporter) —
+# undeclared tarballs render wholesale, conditions ignored (see the loki
+# umbrella, where this bit). repository empty: satisfied by the vendored
+# tgz already in charts/.
+dependencies:
+  - name: kube-prometheus-stack
+    version: "86.2.3"
+    repository: ""

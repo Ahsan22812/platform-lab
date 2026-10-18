@@ -16,14 +16,27 @@ local tarball; no `helm repo add`. See
 
 ## Install
 
-```bash
-export KUBECONFIG=~/.kube/platform-lab.yaml   # if not already set
-./install.sh
-```
+**Deployed by Argo CD** — this directory is an umbrella chart (the
+vendored `.tgz` renders as its subchart; the operator CRDs apply via the
+fleet-wide `ServerSideApply=true` sync option, which is what makes the
+huge CRDs applyable at all). The `platform-observability` ApplicationSet
+([`platform/gitops/`](../../gitops/)) generates the Application; changes
+deploy by **git push**, not by hand.
 
-The script verifies the chart checksum, enforces the
-`kind-platform-lab` context, and installs into the `monitoring`
-namespace from `values.yaml`.
+Note the ROOT-level toggles at the top of `values.yaml` — the chart's
+five conditional dependencies (crds, kube-state-metrics, node-exporter,
+grafana, windows-exporter) are controlled there, because Helm resolves
+dependency conditions against root values, and a missing path means
+*included*.
+
+To bump the chart: pull the new `.tgz` + regenerate `.sha256` per
+[`charts/SOURCE.txt`](charts/SOURCE.txt), update the version in
+`Chart.yaml`'s `dependencies`, push.
+
+Break-glass only (Argo CD itself down):
+```bash
+helm upgrade --install kube-prometheus-stack platform/observability/kube-prometheus-stack -n monitoring
+```
 
 ## Verify
 
@@ -40,11 +53,12 @@ exercise.)
 
 ## Uninstall
 
-```bash
-helm uninstall kube-prometheus-stack -n monitoring
-```
-
-(Leaves the `monitoring` namespace; Grafana also lives there.)
+Remove this component's path from
+`platform/gitops/applicationset-observability.yaml` and push — the
+generator deletes the Application and prunes its resources. (The operator
+CRDs installed from the chart's `crds/` directory are deliberately
+retained by Helm/Argo CD conventions; deleting them would cascade-delete
+every ServiceMonitor/PrometheusRule in the cluster.)
 
 ## Choices baked into this install
 
