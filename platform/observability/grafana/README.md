@@ -19,13 +19,29 @@ tarball, no `helm repo add`. See
 
 ## Install
 
-kube-prometheus-stack must be installed first (provides the Prometheus
-datasource this chart points at — `install.sh` checks for it).
+**Deployed by Argo CD** — this directory is an umbrella chart (the
+vendored `.tgz` renders as its subchart; the vendored dashboards render
+from [`templates/dashboards.yaml`](templates/dashboards.yaml) via
+`.Files`). The `platform-observability` ApplicationSet
+([`platform/gitops/`](../../gitops/)) generates the Application; changes
+deploy by **git push**, not by hand.
+
+**One-time prerequisite** (manual, never committed — see `TODO.md` for
+the Layer-5 Vault/ESO follow-up): the admin-credentials Secret the chart
+references via `admin.existingSecret`:
 
 ```bash
-export KUBECONFIG=~/.kube/platform-lab.yaml   # if not already set
-./install.sh                                   # admin / admin
-GRAFANA_ADMIN_PASSWORD='something-real' ./install.sh   # or override
+kubectl -n monitoring create secret generic grafana-admin \
+  --from-literal=admin-user=admin --from-literal=admin-password=<yours>
+```
+
+To bump the chart: pull the new `.tgz` + regenerate `.sha256` per
+[`charts/SOURCE.txt`](charts/SOURCE.txt), update the version in
+`Chart.yaml`'s `dependencies`, push.
+
+Break-glass only (Argo CD itself down):
+```bash
+helm upgrade --install grafana platform/observability/grafana -n monitoring
 ```
 
 ## Verify
@@ -48,18 +64,17 @@ and loaded as ConfigMaps that the sidecar imports (see
 
 ## Default credentials
 
-`admin` / `admin` unless `GRAFANA_ADMIN_PASSWORD` was set at install.
-Temporary — the env-var + `--set-string` path is the wrong pattern and
-is scheduled for refactor at **Layer 5** (Secret via Vault + ESO). See
-[`TODO.md`](TODO.md).
+Whatever you put in the manually-created `grafana-admin` Secret (see
+Install above). The Secret's *origin* moves to Vault + ESO at **Layer 5**
+— see [`TODO.md`](TODO.md).
 
 ## Uninstall
 
-```bash
-helm uninstall grafana -n monitoring
-# Dashboard ConfigMaps are created out-of-band (install.sh), so remove them too:
-kubectl delete configmap -n monitoring -l grafana_dashboard=1
-```
+Remove this component's path from
+`platform/gitops/applicationset-observability.yaml` and push — the
+generator deletes the Application and prunes its resources, dashboards
+included (they're rendered by this chart now, not applied out-of-band).
+The manual `grafana-admin` Secret is yours to delete separately.
 
 ## Choices baked into this install
 

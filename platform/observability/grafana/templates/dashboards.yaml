@@ -1,0 +1,32 @@
+{{- /*
+Vendored dashboards (dashboards/*.json) rendered as one ConfigMap each,
+labelled for the dashboard sidecar to auto-import. Previously created
+out-of-band by install.sh with `kubectl apply --server-side`; living here
+means Argo CD owns, syncs, and prunes them with the release.
+
+Names match install.sh's convention (grafana-dashboard-<file>) so Argo CD
+adopts the live ConfigMaps in place via server-side apply.
+
+Per-dashboard ConfigMaps (not one combined): node-exporter-full alone is
+~472KB; the fleet-wide ServerSideApply=true sync option is what makes
+objects this size applyable at all (client-side apply's last-applied
+annotation caps at 256KB).
+
+.Files.Get inserts the JSON verbatim — Grafana's own {{...}} legend
+templating inside the dashboards is NOT parsed by Helm (file contents are
+never template-evaluated), which is exactly why this uses .Files instead
+of inlining JSON into this template.
+*/ -}}
+{{- range $path, $_ := .Files.Glob "dashboards/*.json" }}
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: grafana-dashboard-{{ trimSuffix ".json" (base $path) }}
+  namespace: monitoring
+  labels:
+    grafana_dashboard: "1"
+data:
+  {{ base $path }}: |-
+{{ $.Files.Get $path | indent 4 }}
+{{- end }}

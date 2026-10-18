@@ -1,0 +1,26 @@
+apiVersion: v2
+name: grafana
+description: >-
+  Thin umbrella chart so Argo CD can deploy Grafana from a git path. The
+  real chart is the vendored tarball in charts/ (declared below; Helm
+  renders it as a subchart) — this umbrella exists only so the vendored
+  .tgz stays the source of truth (ADR 0004) while GitOps consumes it
+  without unpacking. Configure Grafana under the `grafana:` key in
+  values.yaml (subchart value scoping). The umbrella's templates/ also
+  renders the vendored dashboards (dashboards/*.json via .Files) as
+  sidecar-labelled ConfigMaps, so Argo CD owns their lifecycle too.
+type: application
+# Umbrella version — bump on wrapper/values/dashboard changes (independent
+# of the vendored Grafana chart version, which lives in charts/SOURCE.txt).
+version: 0.1.0
+appVersion: "13.0.2"
+# Declared (not just auto-included from charts/) so Helm's dependency
+# machinery processes any nested dependency conditions — undeclared
+# tarballs render wholesale (see the loki umbrella, where this bit).
+# repository empty: satisfied by the vendored tgz already in charts/.
+# (The grafana chart has no conditional deps — verified — so no root-level
+# kill-switches are needed in values.yaml.)
+dependencies:
+  - name: grafana
+    version: "12.4.5"
+    repository: ""

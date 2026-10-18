@@ -29,6 +29,7 @@ spec:
         directories:
           - path: platform/observability/fluent-bit
           - path: platform/observability/loki
+          - path: platform/observability/grafana
   template:
     metadata:
       name: "{{.path.basename}}"

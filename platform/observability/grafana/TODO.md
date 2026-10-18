@@ -5,23 +5,11 @@
 **Status**: temporary; refactor scheduled for **Layer 5** (Vault +
 External Secrets Operator).
 
-### Current state
+### Current state (updated with the GitOps conversion, 2026-10-18)
 
-`install.sh` accepts `GRAFANA_ADMIN_PASSWORD` (default `admin`) and
-passes it via `--set-string adminPassword=...`. Fine for a local lab,
-wrong for production:
-
-- Credentials shouldn't pass through Helm values at install time (they
-  land in the release's stored values, visible to anyone with helm
-  access).
-- The password should live in a real Kubernetes Secret, referenced by
-  the chart via `admin.existingSecret`.
-- That Secret should be synced from Vault by External Secrets Operator,
-  not created by hand.
-
-### Target shape (Layer 5)
-
-`values.yaml`:
+The values half of the fix is **done** — the umbrella conversion removed
+`install.sh` (and its `--set-string adminPassword`) entirely, and
+`values.yaml` now references:
 
 ```yaml
 admin:
@@ -30,8 +18,19 @@ admin:
   passwordKey: admin-password
 ```
 
-The `grafana-admin` Secret is produced by an `ExternalSecret` pulling
-from a Vault KV path. `install.sh` stops touching the password entirely.
+The remaining debt is only the Secret's **origin**: `grafana-admin` is
+created **manually, once, never committed**:
+
+```bash
+kubectl -n monitoring create secret generic grafana-admin \
+  --from-literal=admin-user=admin --from-literal=admin-password=<yours>
+```
+
+### Target shape (Layer 5)
+
+The same `grafana-admin` Secret produced by an `ExternalSecret` pulling
+from a Vault KV path instead of by hand — a config-only change; nothing
+else in this component moves.
 
 ### Trigger to fix
 
