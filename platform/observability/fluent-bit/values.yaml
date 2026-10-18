@@ -28,6 +28,40 @@ fluent-bit:
     limits:
       memory: 128Mi              # memory limit, no cpu limit (lab policy)
 
+  # --- Hot reload: config changes apply live, without pod restarts ---
+  # Adds --enable-hot-reload to Fluent Bit plus a configmap-reload sidecar
+  # that watches the mounted config and POSTs /api/v2/reload when the
+  # kubelet syncs a ConfigMap change (~1 min).
+  #
+  # TRADE-OFF (this REPLACES the chart's default checksum/config pod
+  # annotation — the chart drops it when hotReload is on, so config changes
+  # never restart pods): pushes are gapless (tail positions and in-memory
+  # buffers survive, no shipping pause), but a REJECTED reload is SILENT —
+  # pods stay Ready running the OLD config while git says otherwise, until
+  # the next natural restart loads the broken config cold. Fluent Bit
+  # exposes no failed-reload metric (only the success counter
+  # fluentbit_hot_reloaded_times), so the compensating controls are:
+  #   1. templates/fluent-bit-alerts.yaml — alerts on the CONSEQUENCES
+  #      (pod down / nothing shipped / outputs failing), which catch a bad
+  #      config whether it was rejected (stale drift) or applied (broken).
+  #   2. README "Pushing a config change" — verify the reload counter
+  #      bumped on EVERY pod after each push.
+  hotReload:
+    enabled: true
+    resources:
+      requests:
+        cpu: 5m
+        memory: 16Mi
+      limits:
+        memory: 32Mi             # same policy: no cpu limit
+
+  # Scrape Fluent Bit itself (/api/v2/metrics/prometheus on the http port) —
+  # prerequisite for the alerts in templates/, and table stakes anyway: an
+  # unmonitored log shipper is its own silent failure. kps's open
+  # ServiceMonitor selectors pick this up automatically.
+  serviceMonitor:
+    enabled: true
+
   # Fluent Bit pipeline (classic .conf format the chart expects).
   config:
     service: |

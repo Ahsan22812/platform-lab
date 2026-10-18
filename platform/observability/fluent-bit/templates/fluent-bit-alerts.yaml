@@ -1,0 +1,94 @@
+# Alert rules for the log-shipping pipeline — the compensating control for
+# hot reload (see values.yaml): Fluent Bit has no failed-reload metric, so
+# instead of alerting on "reload rejected" (not expressible), these alert on
+# the CONSEQUENCES a bad config produces, whether it was rejected (pods
+# silently running stale config that eventually breaks) or applied (pipeline
+# broken now).
+#
+# Lives in the umbrella's templates/ (not the vendored chart) so it's ours
+# to own; kps's ruleSelectorNilUsesHelmValues=false + {} namespace selector
+# means Prometheus picks up any PrometheusRule, including this one.
+#
+# NOTE: alerts fire in Prometheus/Alertmanager but no receiver is wired yet
+# (Alertmanager has no routes — see kps values.yaml), so "pages someone"
+# today means "shows red in the Alertmanager UI / Grafana". Wiring a real
+# receiver is tracked on the roadmap.
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: fluent-bit-alerts
+  namespace: monitoring
+  labels:
+    app.kubernetes.io/name: fluent-bit
+    app.kubernetes.io/part-of: platform-lab
+spec:
+  groups:
+    - name: fluent-bit.pipeline
+      rules:
+        # Scraping of fluent-bit vanished entirely (ServiceMonitor or
+        # Service deleted, DaemonSet gone). absent() is needed because
+        # up==0 can't fire when there are no series at all.
+        - alert: FluentBitAbsent
+          expr: absent(up{job="fluent-bit"})
+          for: 10m
+          labels:
+            severity: critical
+          annotations:
+            summary: "No fluent-bit targets are being scraped"
+            description: >-
+              Prometheus has no up{job="fluent-bit"} series at all. The
+              DaemonSet, Service or ServiceMonitor is gone — log shipping
+              is unmonitored and likely down cluster-wide.
+
+        # A fluent-bit pod is up as a target but failing its scrapes —
+        # process wedged or crashed (e.g. a broken config loaded cold on a
+        # node restart after a bad hot reload went unnoticed).
+        - alert: FluentBitDown
+          expr: up{job="fluent-bit"} == 0
+          for: 5m
+          labels:
+            severity: critical
+          annotations:
+            summary: "fluent-bit target {{`{{ $labels.pod }}`}} is down"
+            description: >-
+              Scrapes of {{`{{ $labels.pod }}`}}
+              ({{`{{ $labels.instance }}`}}) have failed for 5m. That
+              node is shipping no logs.
+
+        # A pod is healthy but has shipped NOTHING for 15m. Every node runs
+        # steadily-logging system pods, so a sustained zero means the
+        # pipeline is broken (bad config applied, tail input dead), not
+        # that the node is quiet.
+        - alert: FluentBitNoLogsShipped
+          expr: >-
+            sum by (pod)
+            (rate(fluentbit_output_proc_records_total{job="fluent-bit"}[10m]))
+            == 0
+          for: 15m
+          labels:
+            severity: warning
+          annotations:
+            summary: "{{`{{ $labels.pod }}`}} has shipped no log records for 15m"
+            description: >-
+              fluent-bit pod {{`{{ $labels.pod }}`}} is Ready but its
+              outputs have processed zero records for 15 minutes — the
+              pipeline on that node is broken even though the pod looks
+              healthy.
+
+        # Outputs are retrying and the retries themselves are failing —
+        # records are being dropped (backend down/rejecting, or a config
+        # change pointed an output somewhere wrong).
+        - alert: FluentBitOutputRetriesFailing
+          expr: >-
+            sum by (pod, name)
+            (rate(fluentbit_output_retries_failed_total{job="fluent-bit"}[10m]))
+            > 0
+          for: 10m
+          labels:
+            severity: warning
+          annotations:
+            summary: "fluent-bit output {{`{{ $labels.name }}`}} is dropping records"
+            description: >-
+              Output {{`{{ $labels.name }}`}} on {{`{{ $labels.pod }}`}}
+              has exhausted retries for 10m — records are being dropped,
+              not just delayed.
