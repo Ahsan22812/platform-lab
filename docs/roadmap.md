@@ -169,6 +169,11 @@ can sidestep).
 
 - [ ] Cloudflare Tunnel for ingress — outbound-only, **no open inbound
       ports, no home-IP exposure**; TLS terminated at the edge
+- [ ] GitHub webhook → Argo CD `/api/webhook` once the tunnel gives an
+      inbound path — push-triggered syncs in seconds instead of the
+      ~3-min poll (the enterprise default; polling stays as fallback).
+      Until then: wait out the poll, or hard-refresh (see
+      platform/gitops/README.md)
 - [ ] Cloudflare Access enforcing Google/Microsoft SSO **+ MFA** at the
       edge, restricted to an **explicit identity allowlist** (never
       "anyone with a Google account")

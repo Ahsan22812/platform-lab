@@ -72,3 +72,20 @@ helm uninstall <release> -n <ns>   # Argo CD recreates + owns it on sync
 Push the component to the remote **before** applying/annotating the
 ApplicationSet — Argo CD reads GitHub, not your working tree; an
 unpushed umbrella shows as `Unknown`.
+
+## Sync latency: `Synced` can be one commit behind
+
+Argo CD learns about new commits by **polling** GitHub (~every 3 min).
+Between your push and the next poll, an app reports `Synced`/`Healthy`
+against the **last revision Argo CD fetched** — truthfully, but one
+commit behind. Not a failure; just latency. To force an immediate
+re-read of the remote:
+
+```bash
+kubectl annotate application <app> -n argocd argocd.argoproj.io/refresh=hard --overwrite
+```
+
+The real fix is a GitHub webhook to Argo CD's `/api/webhook`
+(push-triggered syncs in seconds) — blocked until the cluster has an
+inbound path, tracked under External access in
+[`docs/roadmap.md`](../../docs/roadmap.md).
