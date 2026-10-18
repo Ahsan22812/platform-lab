@@ -52,12 +52,14 @@ platform/<area>/<component>/charts/<chart>-<version>.tgz.sha256
 platform/<area>/<component>/charts/SOURCE.txt
 ```
 
-- The `.sha256` is generated at pull time; `install.sh` verifies it
-  before installing, so later tampering or corruption fails loudly.
+- The `.sha256` is generated at pull time; CI verifies it on every
+  push (originally the per-component `install.sh` did, before those
+  scripts were retired — see the addendum), so a mutated or
+  re-published tarball fails loudly.
 - `SOURCE.txt` records provenance: upstream repo, exact pull command,
   pull date, and the bump procedure.
-- Install scripts use **only** the local tarball — no `helm repo add`,
-  no network fetch for the chart.
+- Installs use **only** the local tarball — no `helm repo add`, no
+  network fetch for the chart.
 - The root-anchored `charts/*.tgz` ignore rule does not match these
   nested paths; vendored charts are tracked by git deliberately.
 
@@ -80,6 +82,38 @@ platform/<area>/<component>/charts/SOURCE.txt
   download from grafana.com. Full air-gap parity would additionally
   need mirrored images and vendored dashboard JSON — out of scope
   here.
+
+## Addendum — umbrella charts for GitOps (2026-10-18)
+
+When the observability stack moved under Argo CD, the vendored
+tarballs had to become something Argo CD can deploy from a git path —
+it renders *charts*, not bare `.tgz` files. Each component directory
+is now a **thin umbrella chart**: a `Chart.yaml` that declares the
+vendored tarball as its single dependency, a `values.yaml` whose
+settings nest under the subchart's name key, and nothing else. The
+tarball stays vendored exactly as above; the umbrella is just the
+adapter. The per-component `install.sh` scripts were deleted so each
+component has exactly one deploy path (git push → Argo CD); checksum
+verification moved to CI.
+
+Hard-won rules for every umbrella:
+
+- **Declare the dependency** in `Chart.yaml` (`repository: ""`). An
+  undeclared tarball in `charts/` renders **wholesale** — dependency
+  `condition:` fields are ignored, which is how Loki's bundled
+  default-credential MinIO once appeared in a render diff.
+- **Pin every conditional dependency at ROOT values.** Conditions
+  resolve against root (not subchart-nested) values, and a *missing*
+  path means *included*. kube-prometheus-stack has five; all five are
+  pinned explicitly.
+- **`.helmignore` the vendoring paperwork.** Helm 4 treats every
+  `charts/` entry as a subchart and errors on `SOURCE.txt` /
+  `*.sha256` (Helm 3 skipped them silently).
+- **`ServerSideApply=true`** on the Applications — the Prometheus
+  Operator CRDs blow past the 256KB last-applied-annotation limit
+  that client-side apply depends on.
+- Prove each conversion with a render diff: `helm template` of the
+  old invocation vs the umbrella must be byte-identical.
 
 ## Notes
 

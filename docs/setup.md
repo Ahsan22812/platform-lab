@@ -105,3 +105,43 @@ kubectl get nodes
 
 Should show 3 nodes (`platform-lab-control-plane`, `platform-lab-worker`,
 `platform-lab-worker2`) in `Ready` state.
+
+## Bring up the platform (GitOps)
+
+Everything above gives you an empty cluster. Everything *on* it
+self-assembles from this repo — Argo CD is the only thing installed by
+hand, and it then deploys the rest from the GitHub remote (so unpushed
+local changes are invisible to it).
+
+```bash
+# 1. Argo CD itself (the one remaining install script — the bootstrapper
+#    can't deploy itself)
+platform/gitops/argocd/install.sh
+
+# 2. The one secret that doesn't live in git (Grafana references it via
+#    admin.existingSecret; Vault/ESO replaces this at Layer 5)
+kubectl create namespace monitoring --dry-run=client -o yaml | kubectl apply -f -
+kubectl -n monitoring create secret generic grafana-admin \
+  --from-literal=admin-user=admin --from-literal=admin-password=<yours>
+
+# 3. The two ApplicationSets — platform charts + the observability stack
+kubectl apply -f platform/gitops/applicationset.yaml
+kubectl apply -f platform/gitops/applicationset-observability.yaml
+```
+
+Then watch it converge:
+
+```bash
+kubectl get applications -n argocd
+```
+
+Within a few minutes every Application (podinfo, fluent-bit, loki,
+grafana, kube-prometheus-stack) reaches `Synced` / `Healthy`. Nothing
+else is installed by hand: each component directory is an umbrella
+chart around a vendored tarball (see
+[ADR 0004](decisions/0004-vendor-helm-charts.md)), and changes deploy
+by **git push**, never `helm upgrade`.
+
+This sequence was validated for real on 2026-10-17 after a laptop
+migration destroyed the Colima VM: the full stack came back from git
+with exactly the commands above.

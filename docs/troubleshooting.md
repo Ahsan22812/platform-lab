@@ -48,8 +48,8 @@ kubeProxy:
   enabled: false
 ```
 
-Re-run `./platform/observability/kube-prometheus-stack/install.sh`.
-This stops generating the ServiceMonitors (and removes the default
+Commit and push — Argo CD rolls it out (the component is
+GitOps-managed; there is no install script). This stops generating the ServiceMonitors (and removes the default
 alert rules that reference them). Confirmed: down targets dropped from
 6 to 0, leaving 21 up. Prometheus may take ~15–30s to reload and drop
 the stale targets.

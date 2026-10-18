@@ -73,8 +73,11 @@ for exactly this.
 
 ## Layer 3.5: GitOps & Registry
 
-- [ ] ArgoCD (continuous reconciliation from this repo)
-- [ ] Migrate platform components from install scripts to Argo apps
+- [x] ArgoCD (continuous reconciliation from this repo) — done 2026-10
+- [x] Migrate platform components from install scripts to Argo apps —
+      done 2026-10-18: all five apps (podinfo + the four observability
+      umbrella charts, ADR 0004 addendum) Synced/Healthy; per-component
+      `install.sh` deleted
 - [ ] Private chart/OCI registry — supersedes chart vendoring, see
       [ADR 0004](decisions/0004-vendor-helm-charts.md). Harbor (full:
       replication, scanning, RBAC, cosign) or Zot/registry:2
@@ -111,6 +114,17 @@ for exactly this.
 
 - [ ] Vault (dev mode)
 - [ ] External Secrets Operator
+- [ ] Stakater Reloader — lands WITH ESO, not before. ESO-rotated
+      secrets change in-cluster with no git commit, so the
+      checksum/config pattern (our standard for git-driven config)
+      never sees them — nothing restarts on rotation. Reloader covers
+      exactly that gap. Deliberately: opt-in annotations only (never
+      --auto-reload-all), scoped to workloads consuming ESO secrets,
+      and `ignoreDifferences` for its injected pod-template field in
+      the Applications from day one, or it fights Argo CD selfHeal
+      (revert → second rollout). Decided 2026-10-19; until then,
+      checksum annotations + per-chart reload mechanisms cover all
+      config change, which is git-driven by construction.
 - [ ] Grafana admin credential via ESO + Vault (closes the Layer-2
       tracked deferral; same pattern for any chart taking credentials)
 - [ ] Cilium (replace default CNI)
