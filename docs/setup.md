@@ -20,16 +20,52 @@ brew install colima kind kubectl helm k9s kubectx stern
 ## Start the container runtime
 
 ```bash
-colima start --cpu 6 --memory 16 --disk 100
+colima start --cpu 8 --memory 24 --disk 100
 ```
 
 Sizing grows with the lab. Layer 1–2 alone runs fine on `--memory 8`;
-the figures above cover through the CI/CD platform (Argo CD + Harbor)
-and into EFK. The heavy, JVM/data components (Elasticsearch, Kafka,
-Patroni) are what drive memory up — bump toward `--memory 20` if you
-run them all at once. Keep Colima at ≤ ~70% of physical RAM so macOS
-keeps headroom. Resize any time with `colima stop && colima start
---cpu N --memory N` (the kind cluster survives the restart).
+`--memory 16` covers through the CI/CD platform (Argo CD + Harbor) and
+into EFK; the figures above run the **entire** roadmap concurrently
+(Elasticsearch, Kafka, Patroni — the JVM/data components — are what
+drive memory up). Scale to your machine: keep Colima at ≤ ~70% of
+physical RAM so macOS keeps headroom. Resize any time with
+`colima stop && colima start --cpu N --memory N` (the kind cluster
+survives the restart).
+
+## Tune the VM kernel (required)
+
+Two classes of workload need raised kernel limits on the VM's Linux,
+applied via Colima's `provision` block so they survive every reboot.
+Without them, log shippers (Fluent Bit) CrashLoop with inotify
+"too many open files", and Elasticsearch (EFK) refuses to start.
+
+Edit `~/.colima/default/colima.yaml` — replace `provision: null` with:
+
+```yaml
+provision:
+  - mode: system
+    script: |
+      # Raise inotify limits — kind/Colima defaults are low and shared
+      # across the cluster, so log shippers (Fluent Bit) hit "too many
+      # open files".
+      sysctl -w fs.inotify.max_user_instances=512
+      sysctl -w fs.inotify.max_user_watches=524288
+      # Elasticsearch (EFK) refuses to start below this. Harmless to
+      # set early; pre-staged so EFK works out of the box.
+      sysctl -w vm.max_map_count=262144
+```
+
+Then apply and verify:
+
+```bash
+colima stop && colima start
+colima ssh -- sudo sysctl fs.inotify.max_user_instances fs.inotify.max_user_watches vm.max_map_count
+# expect: 512 / 524288 / 262144
+```
+
+This mirrors what cloud node tuning does via userData/custom AMIs —
+node-level config stays at the VM layer so the charts remain
+production-clean (they assume tuned nodes, as managed clusters provide).
 
 ## Create the cluster
 
