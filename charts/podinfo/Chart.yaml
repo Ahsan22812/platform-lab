@@ -12,11 +12,12 @@ version: 0.1.0
 appVersion: "6.7.0"
 
 # Shared library chart (local, in-repo). Provides common.pdb,
-# common.topologySpreadConstraints, common.servicemonitor, and the
-# label/selector helpers. install.sh runs `helm dependency update`
+# common.topologySpreadConstraints, common.servicemonitor, the
+# label/selector helpers, and common.checksumAnnotation (unused here —
+# podinfo has no ConfigMap). Argo CD / CI run `helm dependency update`
 # to vendor it into charts/ (gitignored — rebuilt from source).
 dependencies:
   - name: common
-    version: "0.1.0"
+    version: "0.2.0"
     # Sibling under charts/ — short, uniform path for every chart.
     repository: "file://../common"

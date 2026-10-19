@@ -6,4 +6,4 @@ description: >-
   ServiceMonitor) so workload charts get consistent, DRY defaults.
   Renders nothing on its own — type: library.
 type: library
-version: 0.1.0
+version: 0.2.0   # 0.2.0: + common.checksumAnnotation

@@ -20,20 +20,20 @@ Probes hit `/readyz` and `/healthz`.
 
 ## Install
 
-```bash
-export KUBECONFIG=~/.kube/platform-lab.yaml   # if not already set
-./charts/podinfo/install.sh
-```
-
-`install.sh` runs `helm upgrade --install` into the `podinfo` namespace.
-It's idempotent — re-run any time.
+**Deployed by Argo CD** — the `platform-charts` ApplicationSet
+([`platform/gitops/`](../../platform/gitops/)) generates an Application
+per chart under `charts/`; changes deploy by **git push**, not by hand.
 
 **ServiceMonitor ordering**: the chart renders the ServiceMonitor only
 if the Prometheus Operator's CRD is present in the cluster (a Helm
-`.Capabilities` check). So on a fresh cluster podinfo installs cleanly
-*without* it; once `kube-prometheus-stack` is installed, **re-run
-`install.sh`** and the ServiceMonitor appears. The script tells you
-which case you're in.
+`.Capabilities` check). Argo CD re-renders on every sync with the live
+cluster's capabilities, so once `kube-prometheus-stack` is installed
+the ServiceMonitor appears on the next sync — no manual step.
+
+Break-glass only (Argo CD itself down):
+```bash
+helm dependency update charts/podinfo && helm upgrade --install podinfo charts/podinfo -n podinfo --create-namespace
+```
 
 ## Verify
 
@@ -55,9 +55,9 @@ up with `docker buildx imagetools inspect ghcr.io/stefanprodan/podinfo:<tag>`.
 
 ## Remove
 
-```bash
-helm uninstall podinfo -n podinfo
-```
+Remove the chart directory (or exclude its path in
+`platform/gitops/applicationset.yaml`) and push — the generator deletes
+the Application and prunes its resources.
 
 ## Why podinfo
 

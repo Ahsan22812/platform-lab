@@ -8,7 +8,9 @@ chart depends on the shared library with a short uniform path
 charts/
   common/      # shared LIBRARY chart (type: library) — renders nothing
                # itself; exports common.pdb / topologySpread /
-               # servicemonitor + label helpers. See its _*.tpl files.
+               # servicemonitor / checksumAnnotation (config change →
+               # pod restart; use in any chart with a ConfigMap) +
+               # label helpers. See its _*.tpl files.
   podinfo/     # deployment chart for podinfo (third-party app, no source)
   <service>/   # deployment chart for one of our own apps/ services
 ```
