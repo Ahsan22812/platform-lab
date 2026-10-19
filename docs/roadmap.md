@@ -142,6 +142,19 @@ for exactly this.
       config change, which is git-driven by construction.
 - [ ] Grafana admin credential via ESO + Vault (closes the Layer-2
       tracked deferral; same pattern for any chart taking credentials)
+- [ ] **Vault dynamic credentials demo** (stretch; needs the Layer-6
+      Postgres, so it may land after it): Vault database secrets
+      engine mints per-pod DB users with a short TTL — an app running
+      on credentials that expire every ~15 min. The point: static
+      secrets + rotation + Reloader (above) is the mainstream standard,
+      but short-lived dynamic credentials are the end state — rotation
+      stops being an event, so the whole restart-on-rotation problem
+      dissolves. Same family as workload identity (IRSA/pod-IAM at
+      work). Secrets-handling ladder for context: (1) encrypted in git
+      (SOPS/Sealed Secrets — we skip it), (2) manager + ESO + Reloader
+      = this layer's standard, (3) no k8s Secret at all (Vault
+      Agent/CSI, regulated-env territory), (4) dynamic/no static
+      secrets = this demo.
 - [ ] Cilium (replace default CNI)
 - [ ] NetworkPolicies (first enforced ones — verify the CNI enforces)
 - [ ] Hubble UI for network observability
